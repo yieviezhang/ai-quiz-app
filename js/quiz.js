@@ -6,6 +6,7 @@ import * as store from './store.js';
 import * as router from './router.js';
 import * as chrome from './chrome.js';
 import { copyAskClaude } from './share.js';
+import * as sync from './sync.js';
 import { mathtext } from './mathtext.js';
 import { $, el, clear, checkmark, crossmark, bigRing, statusDot, toast, plural } from './ui.js';
 
@@ -189,6 +190,7 @@ function finish() {
     const correct = state.results.filter(r => r.correct).length;
     store.setDaily({ date: store.today(), done: true, score: correct, total: state.ids.length });
   }
+  sync.pushSoon();
   router.go('/summary', { replace: true });
 }
 

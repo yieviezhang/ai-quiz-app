@@ -6,13 +6,14 @@ import * as router from './router.js';
 import * as chrome from './chrome.js';
 import * as quiz from './quiz.js';
 import * as share from './share.js';
+import * as sync from './sync.js';
 import { mathtext } from './mathtext.js';
 import {
   $, $$, el, clear, chevron, ring, bigRing, statusDot,
   toast, plural, formatDateLong,
 } from './ui.js';
 
-const APP_VERSION = '1.0.0';
+const APP_VERSION = '1.1.0';
 
 /* ══════════════════════ Today ══════════════════════ */
 
@@ -294,6 +295,8 @@ function renderSettings() {
   chrome.setHeader(null);
   chrome.setTabbar(true, '#/settings');
 
+  renderSyncSection();
+
   const s = store.stats(bank.allIds());
   const days = store.daysSinceExport();
   $('#import-hint').textContent = days === null
@@ -322,6 +325,111 @@ function renderSettings() {
           el('div', { class: 'list__trail' }, el('span', { class: 'badge badge--neutral', text: 'Clear' }))
         )
       : null
+  );
+}
+
+/* ---------- Cloud sync ---------- */
+
+function relativeTime(iso) {
+  if (!iso) return 'never';
+  const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+  if (!Number.isFinite(mins)) return 'never';
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${plural(mins, 'minute')} ago`;
+  const hours = Math.round(mins / 60);
+  if (hours < 24) return `${plural(hours, 'hour')} ago`;
+  return `${plural(Math.round(hours / 24), 'day')} ago`;
+}
+
+function renderSyncSection() {
+  const box = clear($('#sync-list'));
+  const st = sync.status();
+
+  if (!st.enabled) {
+    const input = el('input', {
+      class: 'text-field', type: 'url', id: 'sync-url-input',
+      placeholder: 'https://ai-quiz-sync.<you>.workers.dev',
+      spellcheck: 'false', autocapitalize: 'off', autocorrect: 'off', inputmode: 'url',
+    });
+    box.append(el('div', { class: 'list__row', style: { flexDirection: 'column', alignItems: 'stretch', gap: 'var(--sp-3)' } },
+      el('div', { class: 'list__body' },
+        el('div', { class: 'list__title', text: 'Not set up' }),
+        el('div', { class: 'list__sub', style: { whiteSpace: 'normal' }, text: 'Paste your Cloudflare Worker URL to back up automatically. Setup steps are in SYNC.md.' })
+      ),
+      input,
+      el('button', {
+        class: 'btn btn--primary', type: 'button', style: { minHeight: '44px', fontSize: '15px' },
+        text: 'Connect',
+        onclick: async ev => {
+          const res = sync.configure(input.value);
+          if (!res.ok) { toast(res.message); return; }
+          const btn = ev.currentTarget;
+          btn.disabled = true;
+          btn.textContent = 'Testing…';
+          const check = await sync.test();
+          toast(check.message);
+          if (!check.ok) sync.disable();
+          renderSyncSection();
+        },
+      })
+    ));
+    return;
+  }
+
+  const dotClass = st.busy ? 'sync-dot sync-dot--busy'
+    : st.error ? 'sync-dot sync-dot--err'
+    : st.lastSyncAt ? 'sync-dot sync-dot--ok'
+    : 'sync-dot';
+
+  box.append(
+    el('div', { class: 'list__row' },
+      el('span', { class: dotClass }),
+      el('div', { class: 'list__body' },
+        el('div', { class: 'list__title', text: st.error ? 'Sync problem' : 'Syncing automatically' }),
+        el('div', {
+          class: 'list__sub', style: { whiteSpace: 'normal' },
+          text: st.error || `Last synced ${relativeTime(st.lastSyncAt)} · after every set and on every open`,
+        })
+      )
+    ),
+    el('button', {
+      class: 'list__row', type: 'button', 'data-tappable': 'true',
+      onclick: async ev => {
+        const btn = ev.currentTarget;
+        btn.querySelector('.list__title').textContent = 'Syncing…';
+        await sync.syncNow();
+        renderSyncSection();
+        toast(sync.status().error || 'Synced.');
+      },
+    },
+      el('div', { class: 'list__body' }, el('div', { class: 'list__title', text: 'Sync now' })),
+      el('div', { class: 'list__trail' }, chevron())
+    ),
+    el('button', {
+      class: 'list__row', type: 'button', 'data-tappable': 'true',
+      // Sync URLs are capability URLs, so this is the only place one is exposed.
+      onclick: () => {
+        const ok = share.copyText(st.url);
+        toast(ok ? 'Sync link copied. Paste it on another device to join.' : 'Copy failed.');
+      },
+    },
+      el('div', { class: 'list__body' },
+        el('div', { class: 'list__title', text: 'Copy sync link' }),
+        el('div', { class: 'list__sub', text: 'Anyone with this link can read your progress' })
+      ),
+      el('div', { class: 'list__trail' }, el('span', { class: 'badge badge--soft', text: 'Copy' }))
+    ),
+    el('button', {
+      class: 'list__row', type: 'button', 'data-tappable': 'true',
+      onclick: () => {
+        if (!confirm('Turn off sync? Your progress stays on this device, and the cloud copy is left untouched.')) return;
+        sync.disable();
+        renderSyncSection();
+        toast('Sync turned off.');
+      },
+    },
+      el('div', { class: 'list__body' }, el('div', { class: 'list__title', style: { color: 'var(--wrong)' }, text: 'Turn off sync' }))
+    )
   );
 }
 
@@ -428,6 +536,16 @@ function showUpdatePill(onTap) {
 
 /* ══════════════════════ Boot ══════════════════════ */
 
+/** Re-render whatever screen is showing — a sync can change progress under it. */
+function refreshCurrent() {
+  const p = router.currentRoute();
+  if (p === '/') renderToday();
+  else if (p === '/weeks') renderWeeks();
+  else if (p === '/review') renderReview();
+  else if (p === '/settings') renderSettings();
+  else if (p?.startsWith('/week/')) renderWeekDetail({ n: p.split('/')[2] });
+}
+
 async function boot() {
   store.init();
   chrome.watchScroll();
@@ -455,6 +573,10 @@ async function boot() {
   router.route('/settings', renderSettings);
   router.fallback(() => router.go('/', { replace: true }));
   router.start();
+
+  // A sync can merge in progress from another device, so redraw when it lands.
+  sync.onChange(st => { if (!st.busy) refreshCurrent(); });
+  sync.install();
 
   registerServiceWorker();
 }

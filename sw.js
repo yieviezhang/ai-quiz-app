@@ -7,7 +7,7 @@
  * JSON. The page shows an update pill instead and asks for the swap.
  */
 
-const VERSION = 'v1.0.0';
+const VERSION = 'v1.1.0';
 const CACHE = `aiquiz-${VERSION}`;
 
 // All relative. This app is served from a GitHub Pages subpath, so a leading
@@ -27,6 +27,7 @@ const PRECACHE = [
   './js/router.js',
   './js/share.js',
   './js/store.js',
+  './js/sync.js',
   './js/ui.js',
   './data/index.json',
   './data/week-01.json',

@@ -80,6 +80,26 @@ app, or iOS evicting storage from an app you haven't opened in weeks. So:
 That same blob is readable by Claude, which is the point: paste it into a chat
 and ask which topics you keep missing.
 
+### Cloud sync (optional)
+
+Manual export is a backup you have to remember. Sync is the same thing without
+the remembering: **Settings → Cloud sync**, paste a Cloudflare Worker URL, and
+progress reconciles on launch, on resume, and a second after each finished set.
+
+Setup is ~10 minutes in a browser, free, no credit card —
+see [SYNC.md](SYNC.md).
+
+Notes on the design:
+
+- localStorage stays the source of truth. Drilling works entirely offline; sync
+  is a background pull → merge → push on top of it.
+- Pulls **merge**, never replace, so a stale cloud record can't roll you back.
+- Auth is a capability URL: the app generates a random 32-character token and
+  keeps the full link only in device localStorage. Nothing about sync is in this
+  repo, and `buildExport()` whitelists meta fields so the URL can never leak
+  into an export blob you paste into a chat.
+- Sync failures are shown in Settings and never block drilling.
+
 ### Ask Claude
 
 There is no AI inside the app — it would mean shipping an API key in a public

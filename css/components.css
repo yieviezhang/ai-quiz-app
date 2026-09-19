@@ -559,6 +559,39 @@
 
 /* ---------- Settings ---------- */
 
+input.text-field {
+  width: 100%;
+  border: 1px solid var(--separator);
+  border-radius: var(--radius-row);
+  background: var(--bg-grouped);
+  color: var(--text-primary);
+  /* 16px minimum or iOS zooms on focus and never zooms back. */
+  font: 400 16px/1.4 var(--font);
+  padding: 11px var(--sp-3);
+}
+
+input.text-field:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+
+.sync-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+  background: var(--text-tertiary);
+}
+
+.sync-dot--ok { background: var(--correct); }
+.sync-dot--err { background: var(--wrong); }
+.sync-dot--busy { background: var(--accent); animation: pulse 1.1s ease-in-out infinite; }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
+}
+
 textarea.import-box {
   width: 100%;
   min-height: 110px;

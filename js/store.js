@@ -22,6 +22,11 @@ const DEFAULT_META = {
   lastExportAt: null,
   sound: false,
   daily: null, // { date, ids, idx, results }
+  // Cloud sync. syncUrl is a capability URL and must never reach an export
+  // blob — buildExport() whitelists meta fields precisely so it can't.
+  syncUrl: null,
+  lastSyncAt: null,
+  lastSyncError: null,
 };
 
 let progress = { ...DEFAULT_PROGRESS, q: {} };
