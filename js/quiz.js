@@ -8,7 +8,7 @@ import * as chrome from './chrome.js';
 import { copyAskClaude } from './share.js';
 import * as sync from './sync.js';
 import { mathtext } from './mathtext.js';
-import { $, el, clear, checkmark, crossmark, bigRing, statusDot, toast, plural } from './ui.js';
+import { $, el, clear, appendAll, checkmark, crossmark, bigRing, statusDot, toast, plural } from './ui.js';
 
 let state = null;
 
@@ -216,7 +216,7 @@ export function renderSummary() {
     : pct >= 0.5 ? 'Solid — with gaps.'
     : 'Worth another pass.';
 
-  clear($('#screen-summary')).append(
+  appendAll(clear($('#screen-summary')),
     el('div', { class: 'center', style: { paddingTop: 'var(--sp-5)' } },
       bigRing(pct, `${correct}/${total}`, 116),
       el('h2', { class: 'title2', style: { marginTop: 'var(--sp-4)' }, text: headline }),

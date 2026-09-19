@@ -9,11 +9,11 @@ import * as share from './share.js';
 import * as sync from './sync.js';
 import { mathtext } from './mathtext.js';
 import {
-  $, $$, el, clear, chevron, ring, bigRing, statusDot,
+  $, $$, el, clear, appendAll, chevron, ring, bigRing, statusDot,
   toast, plural, formatDateLong,
 } from './ui.js';
 
-const APP_VERSION = '1.1.0';
+const APP_VERSION = '1.1.1';
 
 /* ══════════════════════ Today ══════════════════════ */
 
@@ -35,7 +35,7 @@ function renderToday() {
   const cw = bank.currentWeek();
   const cwStats = cw ? bank.weekStats(cw) : null;
 
-  clear($('#today-list')).append(
+  appendAll(clear($('#today-list')),
     el('button', { class: 'list__row', type: 'button', 'data-tappable': 'true', onclick: () => router.go('/review') },
       el('div', { class: 'list__thumb', style: { background: reviewCount ? 'linear-gradient(135deg,#FF8A8E,#E5484D)' : 'var(--bg-raised)', color: reviewCount ? '#fff' : 'var(--text-tertiary)' }, html: '&#8635;' }),
       el('div', { class: 'list__body' },
@@ -188,7 +188,7 @@ function renderWeekDetail({ n }) {
 
   const s = bank.weekStats(w.week);
 
-  clear($('#screen-week')).append(
+  appendAll(clear($('#screen-week')),
     el('div', {},
       el('h1', { class: 'large-title', text: w.title }),
       w.topics?.length
@@ -307,7 +307,7 @@ function renderSettings() {
   $('#sw-sound').setAttribute('aria-checked', String(Boolean(store.getMeta().sound)));
 
   const retired = store.retiredIds(bank.allSet());
-  clear($('#about-list')).append(
+  appendAll(clear($('#about-list')),
     infoRow('Questions', `${s.answered} answered of ${s.total}`),
     infoRow('App version', APP_VERSION),
     infoRow('Question bank', `v${bank.bankVersion() ?? '?'}`),
@@ -381,7 +381,20 @@ function renderSyncSection() {
     : st.lastSyncAt ? 'sync-dot sync-dot--ok'
     : 'sync-dot';
 
-  box.append(
+  appendAll(box,
+    // Deleting the app wipes localStorage, which holds the only copy of the
+    // random sync token. The cloud record survives but becomes unreachable, so
+    // this nags until the link has been saved somewhere outside the app.
+    store.getMeta().syncLinkSaved ? null : el('div', { class: 'list__row' },
+      el('span', { class: 'sync-dot sync-dot--err' }),
+      el('div', { class: 'list__body' },
+        el('div', { class: 'list__title', text: 'Save your sync link' }),
+        el('div', {
+          class: 'list__sub', style: { whiteSpace: 'normal' },
+          text: 'It is the only way back if you delete the app or change phones. Copy it below and keep it in Notes.',
+        })
+      )
+    ),
     el('div', { class: 'list__row' },
       el('span', { class: dotClass }),
       el('div', { class: 'list__body' },
@@ -409,13 +422,20 @@ function renderSyncSection() {
       class: 'list__row', type: 'button', 'data-tappable': 'true',
       // Sync URLs are capability URLs, so this is the only place one is exposed.
       onclick: () => {
+        // copyText must be called synchronously in the handler — iOS silently
+        // rejects a clipboard write that happens after an await.
         const ok = share.copyText(st.url);
-        toast(ok ? 'Sync link copied. Paste it on another device to join.' : 'Copy failed.');
+        if (ok) {
+          store.setMeta({ syncLinkSaved: store.today() });
+          renderSyncSection();
+        }
+        toast(ok ? 'Sync link copied. Keep it in Notes — it restores everything.' : 'Copy failed.');
       },
     },
       el('div', { class: 'list__body' },
         el('div', { class: 'list__title', text: 'Copy sync link' }),
-        el('div', { class: 'list__sub', text: 'Anyone with this link can read your progress' })
+        el('div', { class: 'list__sub', style: { whiteSpace: 'normal' },
+          text: 'Restores your progress on a new install. Anyone with the link can read it.' })
       ),
       el('div', { class: 'list__trail' }, el('span', { class: 'badge badge--soft', text: 'Copy' }))
     ),

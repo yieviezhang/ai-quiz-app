@@ -27,6 +27,20 @@ export function clear(node) {
   return node;
 }
 
+/** Append, skipping conditional children.
+ *
+ * Native Element.append(null) stringifies its argument, so a `cond ? row :
+ * null` branch renders a literal "null" into the page. el() already filters
+ * these out; this is the same filtering for a node that already exists.
+ */
+export function appendAll(node, ...children) {
+  for (const c of children.flat()) {
+    if (c == null || c === false) continue;
+    node.append(typeof c === 'string' || typeof c === 'number' ? String(c) : c);
+  }
+  return node;
+}
+
 const SVG = 'http://www.w3.org/2000/svg';
 
 export function chevron() {

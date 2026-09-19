@@ -27,6 +27,11 @@ const DEFAULT_META = {
   syncUrl: null,
   lastSyncAt: null,
   lastSyncError: null,
+  // The sync token is random and lives only here, so deleting the app loses the
+  // key to the cloud record even though the record itself survives. Settings
+  // nags until the link has been copied out at least once. Deliberately not in
+  // the export whitelist: a restored blob should nag again on the new device.
+  syncLinkSaved: null,
 };
 
 let progress = { ...DEFAULT_PROGRESS, q: {} };
