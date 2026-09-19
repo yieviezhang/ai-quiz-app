@@ -30,6 +30,12 @@ private window.
 ### Tests
 
 ```sh
+python3 tools/bank.py release       # lint content, derive bookkeeping, run tests
+```
+
+Or the engine tests alone:
+
+```sh
 /System/Library/Frameworks/JavaScriptCore.framework/Versions/A/Helpers/jsc \
   -m tools/selftest.mjs
 ```
@@ -107,11 +113,32 @@ repo. Instead, a wrong answer offers **Ask Claude about this**, which copies the
 question, your pick, the correct answer, and your miss pattern to the clipboard.
 Paste it into the Claude iOS app.
 
-### Updating
+### Adding questions
 
-`VERSION` in `sw.js` is the entire deploy ritual. Bump it, push, and the
-installed app shows an "Update available" pill next time you open it. It never
-swaps assets underneath a running page.
+A data-only change. Write the JSON, then run one command:
+
+```sh
+python3 tools/bank.py next 4 10     # next free ids for week 4
+#   ... write them into data/week-04.json ...
+python3 tools/bank.py release       # validate + derive + test
+git add -A && git commit -m "Add week 4" && git push
+```
+
+`release` derives every piece of bookkeeping that used to be manual: per-week
+`count`, the `nextId` counters, `bankVersion` in two files, and the cache-busting
+constant in `sw.js`. Week filenames aren't listed in `sw.js` either — the service
+worker reads them from `data/index.json` at install. Forgetting one of those
+steps used to mean every installed phone served the old questions forever.
+
+See [AUTHORING.md](AUTHORING.md) for the question schema and the rules about
+distractors, Unicode math, and when an edit must get a new id.
+
+### Updating app code
+
+For CSS/JS/HTML changes, bump `VERSION` in `sw.js`. Push, and the installed app
+shows an "Update available" pill next time you open it. It never swaps assets
+underneath a running page. (Question changes don't need this — `bank.py sync`
+handles them.)
 
 ## Deploy to GitHub Pages
 

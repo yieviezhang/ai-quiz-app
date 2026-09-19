@@ -47,12 +47,22 @@ const eq = (name, actual, expected) =>
 store.init();
 await bank.load();
 
+// Expectations are derived from data/index.json, never hardcoded: adding a
+// week is supposed to be a data-only change, so a growing bank must not make
+// this file fail. What's being tested is that the index and the week files
+// agree with each other.
+const index = JSON.parse(readFile('data/index.json'));
+const authoredWeeks = index.weeks.filter(w => w.file);
+const expectedTotal = index.weeks.reduce((n, w) => n + (w.count || 0), 0);
+
 const ids = bank.allIds();
-eq('bank loads 49 questions', ids.length, 49);
-eq('12 weeks listed', bank.allWeeks().length, 12);
-eq('3 weeks authored', bank.allWeeks().filter(bank.isAuthored).length, 3);
-check('bankVersion surfaced', bank.bankVersion() === 1);
+eq('bank loads every question the index claims', ids.length, expectedTotal);
+eq('12 weeks listed', bank.allWeeks().length, index.weeks.length);
+eq('authored weeks match the index',
+  bank.allWeeks().filter(bank.isAuthored).length, authoredWeeks.length);
+check('bankVersion surfaced', Number.isInteger(bank.bankVersion()));
 check('every id is unique', new Set(ids).size === ids.length);
+check('the bank is not empty', ids.length > 0);
 
 for (const q of ids.map(bank.getQuestion)) {
   check(`${q.id} answer in range`, q.answer >= 0 && q.answer < q.options.length);
@@ -106,11 +116,19 @@ check('review pool puts outright-wrong first',
 
 /* ---------- week aggregates ---------- */
 
-const w1 = bank.weekStats(1);
-eq('week 1 total', w1.total, 18);
-eq('week 1 counts add up', w1.mastered + w1.inReview + w1.unseen, w1.total);
-eq('week 4 is empty', bank.weekStats(4).total, 0);
-eq('currentWeek is 1 after touching week 1', bank.currentWeek(), 1);
+const firstWeek = authoredWeeks[0].week;
+const w1 = bank.weekStats(firstWeek);
+eq(`week ${firstWeek} total matches its index count`, w1.total,
+  authoredWeeks[0].count);
+eq('week counts add up', w1.mastered + w1.inReview + w1.unseen, w1.total);
+
+const unauthored = index.weeks.find(w => !w.file);
+if (unauthored) {
+  eq(`week ${unauthored.week} is empty`, bank.weekStats(unauthored.week).total, 0);
+  check(`week ${unauthored.week} is not authored`,
+    !bank.isAuthored(bank.getWeek(unauthored.week)));
+}
+eq('currentWeek follows the week just touched', bank.currentWeek(), firstWeek);
 
 /* ---------- daily pool ---------- */
 
@@ -125,7 +143,7 @@ eq('daily pool is stable across calls', bank.dailyPool(), daily);
 
 const s = store.stats(ids);
 eq('answered counts distinct questions', s.answered, 2);
-eq('stats total', s.total, 49);
+eq('stats total', s.total, expectedTotal);
 check('accuracy between 0 and 1', s.accuracy > 0 && s.accuracy <= 1);
 eq('streak started at 1', store.touchStreak(), 1);
 
@@ -185,8 +203,11 @@ eq('plaintext strips markup', plaintext('`[1, 2]` and x^{2}'), '[1, 2] and x2');
 
 /* ---------- authored content checks ---------- */
 
+// tools/bank.py is the fuller content linter (ids, LaTeX, distractors, option
+// length). These are the two rules worth failing a build over.
 for (const w of bank.allWeeks().filter(bank.isAuthored)) {
   const qs = w.questions;
+  if (qs.length < 6) continue;   // a half-written week isn't a mix violation
   const concept = qs.filter(q => q.kind === 'concept').length;
   const ratio = concept / qs.length;
   check(`week ${w.week} concept ratio ~60%`, ratio >= 0.5 && ratio <= 0.72,
@@ -205,6 +226,8 @@ print(`\n${pass} checks passed`);
 if (failures.length) {
   print(`${failures.length} FAILED:`);
   for (const f of failures) print(`  ✗ ${f}`);
-} else {
-  print('all green');
+  // jsc has no process.exit; an uncaught throw is what makes it exit non-zero,
+  // which is what lets `bank.py release` stop on a red test.
+  throw new Error(`${failures.length} check(s) failed`);
 }
+print('all green');

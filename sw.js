@@ -8,10 +8,20 @@
  */
 
 const VERSION = 'v1.1.0';
-const CACHE = `aiquiz-${VERSION}`;
+
+// Managed by tools/bank.py -- do not edit by hand. It lives in this file, not
+// only in version.json, because sw.js is fetched with updateViaCache:'none'
+// and the browser only notices a new worker when these bytes change. A bank
+// update that left sw.js untouched would serve the old questions forever.
+const BANK = 1;
+
+const CACHE = `aiquiz-${VERSION}-b${BANK}`;
 
 // All relative. This app is served from a GitHub Pages subpath, so a leading
 // slash would resolve to the domain root and 404.
+//
+// Week files are deliberately absent: they are read from data/index.json at
+// install time, so adding a week stays a data-only change.
 const PRECACHE = [
   './',
   './index.html',
@@ -30,19 +40,31 @@ const PRECACHE = [
   './js/sync.js',
   './js/ui.js',
   './data/index.json',
-  './data/week-01.json',
-  './data/week-02.json',
-  './data/week-03.json',
   './icons/icon-180.png',
   './icons/icon-192.png',
   './icons/icon-512.png',
 ];
 
+/** Authored week files, read from the bank index rather than hardcoded. */
+async function weekFiles() {
+  try {
+    const res = await fetch('./data/index.json', { cache: 'reload' });
+    if (!res.ok) throw new Error(String(res.status));
+    const index = await res.json();
+    return (index.weeks || []).map(w => w.file).filter(Boolean);
+  } catch (err) {
+    // Not fatal: the fetch handler still caches week files on first use.
+    console.warn('[sw] bank index unavailable at install', err);
+    return [];
+  }
+}
+
 self.addEventListener('install', event => {
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE);
+    const urls = [...PRECACHE, ...await weekFiles()];
     // Add individually: one 404 must not fail the whole install.
-    await Promise.all(PRECACHE.map(async url => {
+    await Promise.all(urls.map(async url => {
       try {
         await cache.add(new Request(url, { cache: 'reload' }));
       } catch (err) {

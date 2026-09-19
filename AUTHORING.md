@@ -6,28 +6,65 @@
 > allocate a new one.** Wrong-answer history is keyed on `id`; reusing an id
 > after moving the correct answer turns that history into a lie.
 
+## The whole workflow
+
+Adding questions is a **data-only change**. Write JSON, run one command:
+
+```sh
+python3 tools/bank.py next 4 10     # what ids may I use?
+#   ... write the questions into data/week-04.json ...
+python3 tools/bank.py release       # validate, derive everything, run tests
+git add -A && git commit -m "Add week 4 questions" && git push
+```
+
+That's it. Nothing else is hand-maintained.
+
+| Command | Does |
+|---|---|
+| `bank.py check` | Validates ids, schema, LaTeX leaks, mix, answer spread. Exit 1 on errors. |
+| `bank.py next <week> [n]` | Prints the next free ids — never guess these. |
+| `bank.py new <week>` | Scaffolds `data/week-NN.json` from the index title. |
+| `bank.py sync` | Rewrites every derived field. Idempotent. |
+| `bank.py stats` | Per-week table: count, concept %, answer distribution. |
+| `bank.py release` | `check` → `sync` → self-test. Use this one. |
+
+### What `sync` derives, so you never touch it
+
+- per-week `count` and `file` in `index.json`
+- the `nextId` counters
+- `bankVersion` in `index.json` **and** `version.json` — bumped only when the
+  questions actually changed, tracked by `contentHash`
+- `const BANK` in `sw.js`, which is what busts Cache Storage
+
+**Why that last one matters:** `sw.js` is fetched with `updateViaCache:'none'`,
+so the browser only notices a new worker when *those bytes* change. A bank
+update that left `sw.js` alone would leave every installed phone serving the old
+questions forever. This used to be a manual step and it was the step that bit.
+
+Week filenames are no longer listed in `sw.js` either — the worker reads them
+from `data/index.json` at install time.
+
 ## Where things live
 
 | File | Purpose |
 |---|---|
-| `data/index.json` | The 12-week list, `bankVersion`, and the `nextId` counters |
-| `data/week-NN.json` | One week's questions |
+| `data/index.json` | The 12-week list, `bankVersion`, `nextId`, `contentHash`. Mostly machine-maintained — you only ever edit `title`. |
+| `data/week-NN.json` | One week's questions. The only file you write by hand. |
 
 A week with `"file": null` in `index.json` renders as "Coming soon" — the real
-title still shows, so the 12-week arc reads as a roadmap. Making an empty week
-real is: write `data/week-NN.json`, set its `file` and `count`, add the file to
-the `PRECACHE` list in `sw.js`, bump `VERSION` in `sw.js`, bump `bankVersion` in
-both `index.json` and `version.json`.
+title still shows, so the 12-week arc reads as a roadmap. A week becomes real
+the moment its file has questions in it and you run `sync`; delete the file and
+`sync` puts it back to "Coming soon". Neither direction touches code.
 
 ## IDs
 
 Format `wNN-qNNN` — e.g. `w02-q014`. Allocated once, **append-only**, never
 reused, never renumbered.
 
-To add questions to week 2: read `nextId.w02` from `index.json`, use that number
-and count up, then write the new `nextId.w02` back. Display order is array
-position, so a new question can be *appended in ID space* while being *inserted
-anywhere in the array*.
+Ask for them: `python3 tools/bank.py next 2 5` prints the next five free ids for
+week 2, derived from the high-water mark in the week file itself. Display order
+is array position, so a new question can be *appended in ID space* while being
+*inserted anywhere in the array*.
 
 Deleting a question does **not** delete the learner's record of it. Orphaned
 records stay in localStorage and in exports (so they come back if the question
@@ -60,9 +97,10 @@ Clear button.
 
 ## Rules for good questions here
 
-1. **~60% `concept`, ~40% `compute` per week.** Enforced by `tools/selftest.mjs`.
-2. **Spread the correct-answer indices.** Roughly even across 0–3 per week; the
-   self-test flags a lopsided distribution. Otherwise the answer becomes
+1. **~60% `concept`, ~40% `compute` per week.** Enforced by `bank.py check` and
+   the self-test.
+2. **Spread the correct-answer indices.** Roughly even across 0–3 per week;
+   `bank.py stats` shows the distribution. Otherwise the answer becomes
    guessable from position alone.
 3. **Distractors must be diagnostic, not filler.** Each wrong option should be
    the result of a specific, real mistake. For `[1,-2,3] + [4,5,-1]`:
@@ -102,22 +140,24 @@ anyway.
 ## Before committing
 
 ```sh
-/System/Library/Frameworks/JavaScriptCore.framework/Versions/A/Helpers/jsc \
-  -m tools/selftest.mjs
+python3 tools/bank.py release
 ```
 
-It checks JSON validity, id format and uniqueness, `answer` in range,
-`count` matching `index.json`, `nextId` correctness, the concept/compute mix,
-and answer-index spread — plus the whole progress/review/export engine.
+`check` validates ids, schema, LaTeX leaks, unbalanced backticks, duplicate
+prompts, the concept/compute mix and answer spread. `sync` then derives all the
+bookkeeping. The self-test covers the progress/review/export engine and the
+cross-consistency of `index.json` against the week files — it derives its
+expected totals from the index, so a growing bank never breaks it.
 
-## Deploy checklist
+Errors block the sync; warnings don't. `--strict` makes warnings fail too.
 
-1. Edit or add `data/week-NN.json`.
-2. Update `count` and `nextId` in `data/index.json`; bump `bankVersion`.
-3. Add any new data file to `PRECACHE` in `sw.js`.
-4. Bump `VERSION` in `sw.js` and `bankVersion` in `version.json`.
-5. Run the self-test.
-6. Commit and push. The installed app shows an update pill on next open.
+Then:
 
-Step 4 is the one that bites. Without it, phones keep serving the old bank from
-Cache Storage forever and nothing appears to have changed.
+```sh
+git add -A && git commit -m "…" && git push
+```
+
+The installed app shows an update pill on next open.
+
+**Bumping `VERSION` in `sw.js` by hand is only for app code changes** — CSS, JS,
+HTML. Question changes are handled by `sync` via `const BANK`.

@@ -15,17 +15,78 @@
     "w12": 1
   },
   "weeks": [
-    { "week": 1,  "title": "Vectors & What Neural Nets Are",  "file": "./data/week-01.json", "count": 18 },
-    { "week": 2,  "title": "Matrices & Derivatives",           "file": "./data/week-02.json", "count": 17 },
-    { "week": 3,  "title": "Chain Rule & Backprop",            "file": "./data/week-03.json", "count": 14 },
-    { "week": 4,  "title": "Putting It Together",              "file": null, "count": 0 },
-    { "week": 5,  "title": "Probability & Loss Functions",     "file": null, "count": 0 },
-    { "week": 6,  "title": "Information Theory & Optimization","file": null, "count": 0 },
-    { "week": 7,  "title": "Consolidation & WaveNet",          "file": null, "count": 0 },
-    { "week": 8,  "title": "Attention Mechanism",              "file": null, "count": 0 },
-    { "week": 9,  "title": "Full Transformer",                 "file": null, "count": 0 },
-    { "week": 10, "title": "Training LLMs",                    "file": null, "count": 0 },
-    { "week": 11, "title": "RLHF & Alignment",                 "file": null, "count": 0 },
-    { "week": 12, "title": "Review & Interview Prep",          "file": null, "count": 0 }
-  ]
+    {
+      "week": 1,
+      "title": "Vectors & What Neural Nets Are",
+      "file": "./data/week-01.json",
+      "count": 18
+    },
+    {
+      "week": 2,
+      "title": "Matrices & Derivatives",
+      "file": "./data/week-02.json",
+      "count": 17
+    },
+    {
+      "week": 3,
+      "title": "Chain Rule & Backprop",
+      "file": "./data/week-03.json",
+      "count": 14
+    },
+    {
+      "week": 4,
+      "title": "Putting It Together",
+      "file": null,
+      "count": 0
+    },
+    {
+      "week": 5,
+      "title": "Probability & Loss Functions",
+      "file": null,
+      "count": 0
+    },
+    {
+      "week": 6,
+      "title": "Information Theory & Optimization",
+      "file": null,
+      "count": 0
+    },
+    {
+      "week": 7,
+      "title": "Consolidation & WaveNet",
+      "file": null,
+      "count": 0
+    },
+    {
+      "week": 8,
+      "title": "Attention Mechanism",
+      "file": null,
+      "count": 0
+    },
+    {
+      "week": 9,
+      "title": "Full Transformer",
+      "file": null,
+      "count": 0
+    },
+    {
+      "week": 10,
+      "title": "Training LLMs",
+      "file": null,
+      "count": 0
+    },
+    {
+      "week": 11,
+      "title": "RLHF & Alignment",
+      "file": null,
+      "count": 0
+    },
+    {
+      "week": 12,
+      "title": "Review & Interview Prep",
+      "file": null,
+      "count": 0
+    }
+  ],
+  "contentHash": "d0126a60d4bf3901"
 }
