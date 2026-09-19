@@ -1,0 +1,352 @@
+{
+  "week": 5,
+  "title": "Probability & Loss Functions",
+  "topics": ["probability", "conditional probability", "expectation", "cross-entropy", "perplexity", "entropy"],
+  "questions": [
+    {
+      "id": "w05-q001",
+      "rev": 1,
+      "kind": "concept",
+      "topic": "probability",
+      "prompt": "Which pair of conditions must every probability distribution satisfy?",
+      "options": [
+        "Every value is between 0 and 1, and the largest value is 1",
+        "Every value is positive, and they multiply to 1",
+        "Every value is non-negative, and they sum to 1",
+        "The values are evenly spaced, and they sum to 1"
+      ],
+      "answer": 2,
+      "explanation": "Non-negative and summing to 1 — that is the whole definition. Note 'non-negative', not 'positive': a probability of exactly 0 is legal. This is precisely the property softmax was built to guarantee for a model's output over 50,000 tokens.",
+      "hint": "Two conditions, and one of them is about the total."
+    },
+    {
+      "id": "w05-q002",
+      "rev": 1,
+      "kind": "concept",
+      "topic": "probability",
+      "prompt": "Two events A and B are independent. What does that mean?",
+      "options": [
+        "Knowing that B happened tells you nothing about whether A happened",
+        "A and B cannot both happen",
+        "A and B have equal probability",
+        "A and B are caused by different things"
+      ],
+      "answer": 0,
+      "explanation": "Independence means P(A|B) = P(A), equivalently P(A and B) = P(A)·P(B). 'Cannot both happen' is mutually exclusive, which is a completely different idea — in fact mutually exclusive events are strongly dependent, since one occurring rules the other out.",
+      "hint": "Independence is about information, not about causes."
+    },
+    {
+      "id": "w05-q003",
+      "rev": 1,
+      "kind": "concept",
+      "topic": "conditional probability",
+      "prompt": "What does P(A | B) mean?",
+      "options": [
+        "The probability that A causes B",
+        "The probability that A and B both happen",
+        "The probability of A or B, whichever is larger",
+        "The probability of A, given that we already know B happened"
+      ],
+      "answer": 3,
+      "explanation": "Conditioning shrinks the world to the cases where B is true, and asks what fraction of those also have A. It says nothing about causation. A language model is literally a giant conditional: P(next token | everything before it).",
+      "hint": "The bar means 'given'."
+    },
+    {
+      "id": "w05-q004",
+      "rev": 1,
+      "kind": "concept",
+      "topic": "conditional probability",
+      "prompt": "What does Bayes' theorem let you do?",
+      "options": [
+        "Make two dependent events independent",
+        "Turn P(B | A) into P(A | B), using the base rates",
+        "Compute a probability without any data at all",
+        "Prove that two events are mutually exclusive"
+      ],
+      "answer": 1,
+      "explanation": "Bayes flips the direction of a conditional. You usually know P(test positive | sick) — that is what a lab measures — but you want P(sick | test positive). The two can differ enormously when the base rate is low, which is the classic medical-testing trap.",
+      "hint": "Which conditional do you know, and which do you actually want?"
+    },
+    {
+      "id": "w05-q005",
+      "rev": 1,
+      "kind": "concept",
+      "topic": "expectation",
+      "prompt": "The expected value of a random variable is:",
+      "options": [
+        "The outcome that is most likely to occur",
+        "The middle outcome when they are sorted",
+        "The probability-weighted average of all outcomes",
+        "The average of the highest and lowest outcomes"
+      ],
+      "answer": 2,
+      "explanation": "E[X] = Σ P(x)·x. It need not be an outcome that can actually happen — a fair die has expectation 3.5, which no face shows. 'Most likely' is the mode; 'middle' is the median. Every loss you minimize in training is an expectation over the data distribution.",
+      "hint": "Weight each outcome by how often it happens."
+    },
+    {
+      "id": "w05-q006",
+      "rev": 1,
+      "kind": "concept",
+      "topic": "cross-entropy",
+      "prompt": "Why do practitioners work with log probabilities instead of raw probabilities?",
+      "options": [
+        "Multiplying hundreds of small probabilities underflows to 0, while adding their logs does not",
+        "Logs make the probabilities larger and easier to read",
+        "Log probabilities are always positive, which simplifies the code",
+        "Because the logarithm removes the need for normalization"
+      ],
+      "answer": 0,
+      "explanation": "A 500-token sequence means multiplying 500 numbers below 1 — in float32 that is exactly 0.0, and all information is gone. log turns products into sums, which stay in a representable range. Note log probabilities are negative, not positive, since probabilities are below 1.",
+      "hint": "What happens to 0.1 multiplied by itself 500 times?"
+    },
+    {
+      "id": "w05-q007",
+      "rev": 1,
+      "kind": "concept",
+      "topic": "probability",
+      "prompt": "Maximum likelihood estimation chooses parameters that:",
+      "options": [
+        "Make the model as simple as possible",
+        "Minimize the number of parameters needed",
+        "Maximize accuracy on held-out data",
+        "Make the data you actually observed as probable as possible"
+      ],
+      "answer": 3,
+      "explanation": "MLE asks: under which parameters would this exact dataset have been least surprising? Note it optimizes the probability of the training data, with no notion of held-out performance — which is exactly why overfitting is possible and why validation sets exist.",
+      "hint": "The data is fixed; the parameters are what you get to move."
+    },
+    {
+      "id": "w05-q008",
+      "rev": 1,
+      "kind": "concept",
+      "topic": "cross-entropy",
+      "prompt": "Which kind of prediction does cross-entropy loss punish most severely?",
+      "options": [
+        "Being uncertain — spreading probability evenly over all classes",
+        "Being confident and wrong — assigning near-zero probability to the truth",
+        "Being confident and right",
+        "It punishes all mistakes equally"
+      ],
+      "answer": 1,
+      "explanation": "The loss is −log(p) for the correct class, and −log goes to infinity as p approaches 0. Assigning 0.001 to the truth costs ~6.9; hedging at 0.1 costs only 2.3. Spreading probability out is cheap insurance, which is why well-trained models hedge instead of gambling.",
+      "hint": "Sketch −log(p) as p heads toward zero."
+    },
+    {
+      "id": "w05-q009",
+      "rev": 1,
+      "kind": "concept",
+      "topic": "cross-entropy",
+      "prompt": "Why train against cross-entropy rather than directly against accuracy?",
+      "options": [
+        "Accuracy is harder to compute than cross-entropy",
+        "Accuracy cannot be applied to more than two classes",
+        "Accuracy is flat almost everywhere, so its gradient is zero and carries no signal",
+        "Accuracy is only defined for regression problems"
+      ],
+      "answer": 2,
+      "explanation": "Nudging a weight usually does not flip any prediction, so accuracy does not move at all — zero gradient, nothing to descend. Cross-entropy responds to every small improvement in confidence, so it hands you a usable slope. Accuracy stays useful for reporting, just not for optimizing.",
+      "hint": "Change a weight by 0.0001. Does accuracy change?"
+    },
+    {
+      "id": "w05-q010",
+      "rev": 1,
+      "kind": "concept",
+      "topic": "perplexity",
+      "prompt": "A language model has a perplexity of 20. The most useful way to read that is:",
+      "options": [
+        "At each token it is about as confused as if choosing uniformly among 20 options",
+        "It gets about 20% of its predictions right",
+        "It needs about 20 more epochs of training",
+        "Its vocabulary effectively contains 20 tokens"
+      ],
+      "answer": 0,
+      "explanation": "Perplexity is the exponential of the average cross-entropy, so it converts nats into an 'effective number of choices'. Dropping perplexity from 50 to 20 means the model went from feeling like a 50-way guess to a 20-way guess at each step. GPT-2 scored roughly 20 on some benchmarks; modern models are well under 10.",
+      "hint": "It has the units of a count of options, not a percentage."
+    },
+    {
+      "id": "w05-q011",
+      "rev": 1,
+      "kind": "concept",
+      "topic": "cross-entropy",
+      "prompt": "What is the relationship between minimizing cross-entropy and maximum likelihood?",
+      "options": [
+        "They are opposites — one maximizes, the other minimizes",
+        "Cross-entropy is used for classification, likelihood only for regression",
+        "They agree only when the classes are balanced",
+        "They are the same objective: cross-entropy is the negative log-likelihood"
+      ],
+      "answer": 3,
+      "explanation": "Maximizing Π p(correct) is the same as maximizing Σ log p(correct), which is the same as minimizing −Σ log p(correct) — and that last expression is cross-entropy. One objective, two vocabularies: statisticians say likelihood, deep learning says loss.",
+      "hint": "Write out cross-entropy, then put a minus sign in front of it."
+    },
+    {
+      "id": "w05-q012",
+      "rev": 1,
+      "kind": "concept",
+      "topic": "entropy",
+      "prompt": "The entropy of a probability distribution measures:",
+      "options": [
+        "How far the distribution is from the true one",
+        "How much uncertainty the distribution contains",
+        "How many samples were used to estimate it",
+        "How large its biggest probability is"
+      ],
+      "answer": 1,
+      "explanation": "Entropy is the average surprise, and it is maximal for a uniform distribution and zero for a certain one. Distance from the true distribution is KL divergence — a related but different quantity. Entropy is also the floor on cross-entropy: no model can score below the data's own entropy.",
+      "hint": "Which distribution over 4 options is hardest to guess from?"
+    },
+    {
+      "id": "w05-q013",
+      "rev": 1,
+      "kind": "concept",
+      "topic": "perplexity",
+      "prompt": "Softmax converts logits into probabilities by:",
+      "options": [
+        "Clipping negatives to zero, then dividing by the sum",
+        "Subtracting the mean, then dividing by the standard deviation",
+        "Exponentiating each logit, then dividing by the total",
+        "Ranking the logits, then assigning fixed probabilities by rank"
+      ],
+      "answer": 2,
+      "explanation": "exp makes everything positive (which handles negative logits, where clipping would destroy information), and dividing by the total forces the sum to 1. Subtracting the mean and dividing by the standard deviation is normalization — useful, but it does not produce probabilities.",
+      "hint": "Two steps, and the first one deals with negative numbers."
+    },
+    {
+      "id": "w05-q014",
+      "rev": 1,
+      "kind": "concept",
+      "topic": "cross-entropy",
+      "prompt": "True or false: a cross-entropy loss of exactly 0 on a token would require the model to assign it probability 1.",
+      "options": ["True", "False"],
+      "answer": 0,
+      "explanation": "The loss is −log(p), and −log(1) = 0, so zero loss means perfect certainty about the right answer. On real text this never happens and should not — many contexts genuinely permit several next words, so a model with zero training loss has memorized rather than learned.",
+      "hint": "Where does −log(p) hit zero?"
+    },
+    {
+      "id": "w05-q015",
+      "rev": 1,
+      "kind": "concept",
+      "topic": "probability",
+      "prompt": "True or false: softmax can output a probability of exactly 0 for a class.",
+      "options": ["True", "False"],
+      "answer": 1,
+      "explanation": "exp(x) is strictly positive for every finite x, so every class always gets some probability, however tiny. This matters in practice: it means a model never absolutely rules a token out, and it is why sampling with a high temperature can produce genuinely strange words.",
+      "hint": "Is there any real number whose exponential is zero?"
+    },
+    {
+      "id": "w05-q016",
+      "rev": 1,
+      "kind": "compute",
+      "topic": "cross-entropy",
+      "prompt": "Your model assigns probability 0.25 to the correct next token. What is the cross-entropy loss for that token? (ln 4 ≈ 1.39)",
+      "options": ["1.39", "0.25", "0.75", "−1.39"],
+      "answer": 0,
+      "explanation": "Loss = −ln(0.25) = ln(4) ≈ 1.39. Answering 0.75 computes 1 − p, which is not a log at all; answering −1.39 forgot the minus sign that makes the loss positive. Losses are non-negative because probabilities are at most 1, so their logs are at most 0.",
+      "hint": "−ln(1/4) is the same as ln 4."
+    },
+    {
+      "id": "w05-q017",
+      "rev": 1,
+      "kind": "compute",
+      "topic": "perplexity",
+      "prompt": "A model's average cross-entropy loss is 0.69 nats. What is its perplexity? (e^{0.69} ≈ 2)",
+      "options": ["0.69", "2", "1.38", "0.5"],
+      "answer": 1,
+      "explanation": "Perplexity = exp(average loss) = exp(0.69) ≈ 2, so at each token the model is about as uncertain as a coin flip. Answering 1.38 doubled the loss instead of exponentiating it. This is the conversion to keep in your head: loss and perplexity are the same fact in different units.",
+      "hint": "Perplexity undoes the logarithm."
+    },
+    {
+      "id": "w05-q018",
+      "rev": 1,
+      "kind": "compute",
+      "topic": "cross-entropy",
+      "prompt": "An untrained model with a 50,257-token vocabulary outputs a uniform distribution. What is its cross-entropy loss per token? (ln 50257 ≈ 10.8)",
+      "options": ["about 0.00002", "about 1", "about 10.8", "about 50,257"],
+      "answer": 2,
+      "explanation": "Uniform means p = 1/50257 for whatever token appears, so the loss is −ln(1/50257) = ln(50257) ≈ 10.8. This is the number worth memorizing: a GPT-2-vocabulary run that starts near 10.8 and falls is training correctly, and one that starts at 40 has a bug.",
+      "hint": "Every token gets the same probability. What is it?"
+    },
+    {
+      "id": "w05-q019",
+      "rev": 1,
+      "kind": "compute",
+      "topic": "probability",
+      "prompt": "Logits `[1, 1]` go into a softmax. What comes out?",
+      "options": [
+        "`[1, 1]`",
+        "`[0.27, 0.27]`",
+        "`[0.73, 0.27]`",
+        "`[0.5, 0.5]`"
+      ],
+      "answer": 3,
+      "explanation": "Equal logits give equal probabilities, and they must total 1, so each is 0.5. Answering `[0.27, 0.27]` applied exp and divided by the wrong thing — the outputs must sum to 1, which is a free check on any softmax answer you produce.",
+      "hint": "Check that your two numbers add to 1."
+    },
+    {
+      "id": "w05-q020",
+      "rev": 1,
+      "kind": "compute",
+      "topic": "conditional probability",
+      "prompt": "P(A and B) = 0.12 and P(B) = 0.3. What is P(A | B)?",
+      "options": ["0.4", "0.036", "0.12", "2.5"],
+      "answer": 0,
+      "explanation": "P(A|B) = P(A and B) / P(B) = 0.12 / 0.3 = 0.4. Answering 0.036 multiplied instead of dividing; answering 2.5 divided the wrong way round, and the fact that it exceeds 1 is your signal that something went wrong.",
+      "hint": "Divide by the probability of what you are conditioning on."
+    },
+    {
+      "id": "w05-q021",
+      "rev": 1,
+      "kind": "compute",
+      "topic": "conditional probability",
+      "prompt": "A disease affects 1% of people. A test catches 99% of cases but also flags 5% of healthy people. Someone tests positive. Roughly what is the chance they have the disease?",
+      "options": ["about 99%", "about 17%", "about 50%", "about 1%"],
+      "answer": 1,
+      "explanation": "In 10,000 people: 100 are sick and 99 test positive; 9,900 are healthy and 495 test positive anyway. So 99 of 594 positives are real — about 17%. The trap is reading the test's 99% sensitivity as the answer; because healthy people vastly outnumber sick ones, their false positives dominate.",
+      "hint": "Imagine 10,000 people and count actual positives on both sides."
+    },
+    {
+      "id": "w05-q022",
+      "rev": 1,
+      "kind": "compute",
+      "topic": "expectation",
+      "prompt": "What is the expected value of one roll of a fair six-sided die?",
+      "options": ["3", "6", "3.5", "1"],
+      "answer": 2,
+      "explanation": "(1+2+3+4+5+6)/6 = 21/6 = 3.5. Answering 3 rounded to a face that can actually appear, which misses the point: an expectation is an average, and it is allowed to be a value the variable never takes.",
+      "hint": "Average the six faces."
+    },
+    {
+      "id": "w05-q023",
+      "rev": 1,
+      "kind": "compute",
+      "topic": "probability",
+      "prompt": "A fair coin is flipped three times, independently. What is the probability of getting heads all three times?",
+      "options": ["0.5", "0.375", "1.5", "0.125"],
+      "answer": 3,
+      "explanation": "Independence lets you multiply: 0.5 × 0.5 × 0.5 = 0.125, or 1 in 8. Answering 1.5 added the probabilities, which can never be right — a probability above 1 is always an arithmetic error. Answering 0.375 is the probability of exactly one head.",
+      "hint": "Independent events: multiply."
+    },
+    {
+      "id": "w05-q024",
+      "rev": 1,
+      "kind": "compute",
+      "topic": "entropy",
+      "prompt": "A distribution over four tokens is `[0.5, 0.25, 0.125, 0.125]`. What is its entropy in bits?",
+      "options": ["1.75", "2", "0.5", "4"],
+      "answer": 0,
+      "explanation": "Entropy = Σ p·log₂(1/p) = 0.5·1 + 0.25·2 + 0.125·3 + 0.125·3 = 0.5 + 0.5 + 0.375 + 0.375 = 1.75 bits. Answering 2 is the entropy of a uniform distribution over four options — the maximum — and this one is lower precisely because it is skewed.",
+      "hint": "Each probability here is a clean power of one half."
+    },
+    {
+      "id": "w05-q025",
+      "rev": 1,
+      "kind": "compute",
+      "topic": "cross-entropy",
+      "prompt": "Model A gives the correct token probability 0.8; model B gives it 0.4. How much lower is A's loss on that token? (ln 2 ≈ 0.69)",
+      "options": ["0.4 nats", "0.69 nats", "2 nats", "0.22 nats"],
+      "answer": 1,
+      "explanation": "−ln(0.8) = 0.22 and −ln(0.4) = 0.92, a gap of 0.69 = ln 2. The general fact: doubling the probability of the truth always cuts the loss by exactly ln 2, no matter where you started. That is why a loss improvement of 0.69 on a training curve means the model literally became twice as confident.",
+      "hint": "0.8 is exactly twice 0.4, and log turns ratios into differences."
+    }
+  ]
+}

@@ -1,0 +1,378 @@
+{
+  "week": 4,
+  "title": "Putting It Together",
+  "topics": ["neurons", "activations", "loss functions", "training loop", "overfitting", "parameter counting"],
+  "questions": [
+    {
+      "id": "w04-q001",
+      "rev": 1,
+      "kind": "concept",
+      "topic": "neurons",
+      "prompt": "A single artificial neuron computes what, before its activation function is applied?",
+      "options": [
+        "The average of all its inputs",
+        "The largest of its inputs",
+        "A weighted sum of its inputs, plus a bias",
+        "The product of all its inputs"
+      ],
+      "answer": 2,
+      "explanation": "It computes w·x + b — the dot product you learned in week 1, plus one extra number. That is the whole neuron. Every parameter in GPT-3's 175 billion is a w or a b sitting inside one of these.",
+      "hint": "You already know this operation under a different name."
+    },
+    {
+      "id": "w04-q002",
+      "rev": 1,
+      "kind": "concept",
+      "topic": "activations",
+      "prompt": "You stack three linear layers with no activation function between them. What have you built?",
+      "options": [
+        "A single linear transformation — the depth bought you nothing",
+        "A network that can fit any smooth curve",
+        "A network with three times the capacity of one layer",
+        "A network that trains three times faster"
+      ],
+      "answer": 0,
+      "explanation": "A composition of linear maps is itself a linear map — week 2's B × A collapses into one matrix. So the nonlinearity is not a detail bolted on for performance; without it, depth is an illusion and a 96-layer transformer would be a single matrix multiply.",
+      "hint": "Think about what B × A gave you in week 2."
+    },
+    {
+      "id": "w04-q003",
+      "rev": 1,
+      "kind": "concept",
+      "topic": "neurons",
+      "prompt": "What does the bias term let a neuron do that it could not do without one?",
+      "options": [
+        "Scale its inputs up or down",
+        "Ignore inputs that are irrelevant",
+        "Guarantee that its output is positive",
+        "Produce a non-zero output even when every input is zero"
+      ],
+      "answer": 3,
+      "explanation": "Without b, w·x is forced to 0 whenever x is 0, so every neuron's decision boundary is nailed to the origin. The bias shifts the threshold. Scaling is what the weights do; the bias moves, it does not stretch.",
+      "hint": "Set every input to zero and see what is left."
+    },
+    {
+      "id": "w04-q004",
+      "rev": 1,
+      "kind": "concept",
+      "topic": "loss functions",
+      "prompt": "What is the job of a loss function?",
+      "options": [
+        "To decide which activation function the network should use",
+        "To collapse how wrong the model is into one number you can minimize",
+        "To normalize the inputs before they enter the network",
+        "To choose the learning rate automatically"
+      ],
+      "answer": 1,
+      "explanation": "Gradient descent needs a single scalar to descend. The loss is the bridge from 'the model is bad in these thousand ways' to one number whose derivative you can take. No scalar, no gradient, no training.",
+      "hint": "What does gradient descent need in order to have a gradient at all?"
+    },
+    {
+      "id": "w04-q005",
+      "rev": 1,
+      "kind": "concept",
+      "topic": "training loop",
+      "prompt": "You set the learning rate far too high. What do you expect to see?",
+      "options": [
+        "The loss jumps around or blows up instead of settling",
+        "The loss falls smoothly but far too slowly",
+        "The loss stays exactly constant",
+        "Training still works, but uses much more memory"
+      ],
+      "answer": 0,
+      "explanation": "Each step overshoots the minimum and lands further up the other side, so the loss oscillates or diverges to NaN. Slow-but-smooth is the opposite failure. This is why LLM training runs warm the learning rate up rather than starting at full value.",
+      "hint": "Picture stepping downhill with strides much longer than the valley is wide."
+    },
+    {
+      "id": "w04-q006",
+      "rev": 1,
+      "kind": "concept",
+      "topic": "training loop",
+      "prompt": "You set the learning rate far too low. What do you expect to see?",
+      "options": [
+        "The loss blows up to infinity",
+        "The model overfits almost immediately",
+        "Every gradient becomes exactly zero",
+        "The loss creeps down so slowly that training never finishes"
+      ],
+      "answer": 3,
+      "explanation": "The direction is right, the stride is tiny. Nothing breaks — you just run out of patience or compute. Note that the gradients are fine; it is the step size multiplying them that is too small.",
+      "hint": "The gradient is unchanged. Only what you do with it changes."
+    },
+    {
+      "id": "w04-q007",
+      "rev": 1,
+      "kind": "concept",
+      "topic": "training loop",
+      "prompt": "One epoch of training means:",
+      "options": [
+        "One update to the weights",
+        "One complete pass over the whole training set",
+        "One forward pass through the network",
+        "One minibatch of examples"
+      ],
+      "answer": 1,
+      "explanation": "An epoch is a lap around the entire dataset; a single weight update is a step. One epoch usually contains thousands of steps. Large LLMs are often trained for less than one full epoch — they see most of their data exactly once.",
+      "hint": "Which unit is the biggest?"
+    },
+    {
+      "id": "w04-q008",
+      "rev": 1,
+      "kind": "concept",
+      "topic": "training loop",
+      "prompt": "Why train on minibatches instead of computing the gradient over the entire dataset each step?",
+      "options": [
+        "Because a minibatch gradient is more accurate than a full-batch one",
+        "Because minibatches remove the need for a learning rate",
+        "Because a rough gradient computed cheaply lets you take far more steps",
+        "Because minibatches eliminate overfitting"
+      ],
+      "answer": 2,
+      "explanation": "The full-batch gradient is the more accurate one — that is exactly the trade you are making. A noisy estimate from 32 examples costs almost nothing and lets you update thousands of times in the span of one full-batch step, and the noise itself helps escape bad regions.",
+      "hint": "Accuracy per step versus number of steps."
+    },
+    {
+      "id": "w04-q009",
+      "rev": 1,
+      "kind": "concept",
+      "topic": "overfitting",
+      "prompt": "Why hold out a validation set instead of judging the model on the data it trained on?",
+      "options": [
+        "Training loss cannot distinguish memorizing from learning",
+        "Validation data is cleaner and better labelled",
+        "It makes each training step faster",
+        "The training loss is not differentiable"
+      ],
+      "answer": 0,
+      "explanation": "A model with enough parameters can drive training loss to near zero by memorizing, which looks identical to success from the inside. Held-out data is the only question the model has not already seen the answer to. This is also why benchmark contamination is such a serious problem for LLM evaluation.",
+      "hint": "What would a model that simply memorized everything score on its own training data?"
+    },
+    {
+      "id": "w04-q010",
+      "rev": 1,
+      "kind": "concept",
+      "topic": "overfitting",
+      "prompt": "Training loss keeps falling while validation loss starts climbing. This is the signature of:",
+      "options": [
+        "A learning rate that is too low",
+        "Vanishing gradients",
+        "A bug in the forward pass",
+        "Overfitting"
+      ],
+      "answer": 3,
+      "explanation": "The two curves separating is the definition of overfitting: the model is still improving on the examples it has seen and getting worse on everything else. A too-low learning rate would make both curves fall slowly together; a forward-pass bug would usually wreck both.",
+      "hint": "Watch the gap between the two curves, not either one alone."
+    },
+    {
+      "id": "w04-q011",
+      "rev": 1,
+      "kind": "concept",
+      "topic": "training loop",
+      "prompt": "Why is initializing every weight in a layer to zero a bad idea?",
+      "options": [
+        "Zero weights make the loss function undefined",
+        "Every neuron in the layer computes the same thing and receives the same gradient, forever",
+        "The gradients immediately become infinite",
+        "It makes each forward pass much slower"
+      ],
+      "answer": 1,
+      "explanation": "Identical weights means identical outputs, which by the chain rule means identical gradients, so the neurons update identically and stay clones. A 512-neuron layer would have the expressive power of one neuron. Random initialization exists to break that symmetry, not to be clever.",
+      "hint": "If two neurons start identical and get identical updates, when do they ever differ?"
+    },
+    {
+      "id": "w04-q012",
+      "rev": 1,
+      "kind": "concept",
+      "topic": "training loop",
+      "prompt": "Which of these is a hyperparameter rather than a parameter?",
+      "options": [
+        "A weight in the first layer",
+        "The learning rate",
+        "A bias in the output layer",
+        "A row of the embedding table"
+      ],
+      "answer": 1,
+      "explanation": "Parameters are learned by gradient descent; hyperparameters are the choices you make about how that learning happens, and gradient descent never touches them. Weights, biases and embedding rows are all parameters — embeddings are learned, which is the whole reason they end up meaningful.",
+      "hint": "Which one has no gradient flowing into it?"
+    },
+    {
+      "id": "w04-q013",
+      "rev": 1,
+      "kind": "concept",
+      "topic": "embeddings",
+      "prompt": "Mechanically, an embedding layer is best described as:",
+      "options": [
+        "A matrix multiplication applied directly to raw text",
+        "A compression algorithm for tokens",
+        "A lookup table holding one learned vector per token",
+        "A distance function between pairs of words"
+      ],
+      "answer": 2,
+      "explanation": "Token id 4271 simply selects row 4271 of a matrix. There is no clever machinery — the magic is that those rows are parameters, so gradient descent shapes them until similar tokens end up with similar vectors, which is what made week 1's cosine similarity meaningful.",
+      "hint": "What is the very first thing that happens to a token id?"
+    },
+    {
+      "id": "w04-q014",
+      "rev": 1,
+      "kind": "concept",
+      "topic": "activations",
+      "prompt": "What does a softmax layer output?",
+      "options": [
+        "Non-negative numbers over the classes that add up to 1",
+        "The single most likely class",
+        "The raw scores, rescaled to lie between −1 and 1",
+        "The loss for the current example"
+      ],
+      "answer": 0,
+      "explanation": "Softmax turns arbitrary real-valued logits into a probability distribution. It does not pick a winner — argmax does that, afterwards. When an LLM 'chooses the next token', it is sampling from exactly this distribution over ~50,000 options.",
+      "hint": "What property must any set of probabilities have?"
+    },
+    {
+      "id": "w04-q015",
+      "rev": 1,
+      "kind": "concept",
+      "topic": "overfitting",
+      "prompt": "True or false: adding more hidden layers always improves a network's accuracy on new data.",
+      "options": ["True", "False"],
+      "answer": 1,
+      "explanation": "More capacity means more ability to memorize, and past some point validation performance degrades even as training loss keeps falling. Depth also brings optimization problems of its own — vanishing gradients from week 3 are one. Residual connections exist precisely because naive depth stopped helping.",
+      "hint": "Capacity to fit is not the same as ability to generalize."
+    },
+    {
+      "id": "w04-q016",
+      "rev": 1,
+      "kind": "concept",
+      "topic": "activations",
+      "prompt": "True or false: a network with no activation functions can still learn nonlinear patterns, as long as it is deep enough.",
+      "options": ["True", "False"],
+      "answer": 1,
+      "explanation": "No depth of linear layers escapes linearity — they collapse into one matrix. This is the same fact as the three-stacked-layers question, and it is worth being able to state both ways, because interviewers ask it in both directions.",
+      "hint": "Does composing linear maps ever produce something that is not linear?"
+    },
+    {
+      "id": "w04-q017",
+      "rev": 1,
+      "kind": "compute",
+      "topic": "neurons",
+      "prompt": "With w = `[1, -2, 3]`, x = `[2, 1, 1]` and bias b = −1, what is w·x + b?",
+      "options": ["2", "3", "6", "−1"],
+      "answer": 0,
+      "explanation": "w·x = 1·2 + (−2)·1 + 3·1 = 2 − 2 + 3 = 3, then add b: 3 − 1 = 2. Answering 3 means you forgot the bias; 6 means you dropped the minus sign on the second weight; −1 means you used only the bias.",
+      "hint": "Dot product first, bias second."
+    },
+    {
+      "id": "w04-q018",
+      "rev": 1,
+      "kind": "compute",
+      "topic": "parameter counting",
+      "prompt": "A fully connected layer maps 3 inputs to 4 outputs. How many parameters does it have, counting weights and biases?",
+      "options": ["12", "16", "7", "24"],
+      "answer": 1,
+      "explanation": "A weight for every input-output pair: 3 × 4 = 12, plus one bias per output: + 4 = 16. Answering 12 means you forgot the biases — the single most common slip in parameter counting. 7 means you added 3 + 4 instead of multiplying.",
+      "hint": "One weight per connection, one bias per output neuron."
+    },
+    {
+      "id": "w04-q019",
+      "rev": 1,
+      "kind": "compute",
+      "topic": "parameter counting",
+      "prompt": "An MLP has layers 784 → 128 → 10, both fully connected. Roughly how many parameters does it have?",
+      "options": ["about 8,000", "about 922", "about 102,000", "about 1 million"],
+      "answer": 2,
+      "explanation": "First layer: 784 × 128 + 128 = 100,480. Second: 128 × 10 + 10 = 1,290. Total 101,770. Answering 922 means you added the layer sizes instead of multiplying. Notice the first layer holds 99% of the parameters — width times width is what dominates a model's size.",
+      "hint": "Do each layer separately, then add."
+    },
+    {
+      "id": "w04-q020",
+      "rev": 1,
+      "kind": "compute",
+      "topic": "activations",
+      "prompt": "Apply ReLU elementwise to `[-2, 0, 3, -0.5]`.",
+      "options": [
+        "`[-2, 0, 3, -0.5]`",
+        "`[2, 0, 3, 0.5]`",
+        "`[0, 0, 3, -0.5]`",
+        "`[0, 0, 3, 0]`"
+      ],
+      "answer": 3,
+      "explanation": "ReLU(x) = max(0, x), so every negative becomes 0 and everything else passes through untouched. The second option is absolute value, not ReLU — a genuinely common confusion. The third missed −0.5 because it looked small.",
+      "hint": "max(0, x), one element at a time."
+    },
+    {
+      "id": "w04-q021",
+      "rev": 1,
+      "kind": "compute",
+      "topic": "training loop",
+      "prompt": "A weight is 0.8, its gradient is −0.4, and the learning rate is 0.5. What is the weight after one gradient descent step?",
+      "options": ["0.6", "1.0", "0.4", "0.8"],
+      "answer": 1,
+      "explanation": "w ← w − lr · gradient = 0.8 − 0.5 · (−0.4) = 0.8 + 0.2 = 1.0. Subtracting a negative gradient increases the weight, which is the point: the loss falls as this weight grows. Answering 0.6 means you ignored the gradient's sign and subtracted 0.2.",
+      "hint": "Two minus signs meet."
+    },
+    {
+      "id": "w04-q022",
+      "rev": 1,
+      "kind": "compute",
+      "topic": "activations",
+      "prompt": "Logits `[2, 1]` go into a softmax. Which is closest to the output? (e² ≈ 7.39, e¹ ≈ 2.72)",
+      "options": [
+        "`[0.50, 0.50]`",
+        "`[0.67, 0.33]`",
+        "`[0.73, 0.27]`",
+        "`[0.88, 0.12]`"
+      ],
+      "answer": 2,
+      "explanation": "Exponentiate, then normalize: 7.39 / (7.39 + 2.72) = 0.73 and 2.72 / 10.11 = 0.27. Answering 0.67 / 0.33 means you normalized the logits directly as 2/3 and 1/3 without exponentiating — the exponential is what makes softmax favour the leader more sharply than the raw scores do.",
+      "hint": "Exponentiate first. Normalizing the raw logits is a different function."
+    },
+    {
+      "id": "w04-q023",
+      "rev": 1,
+      "kind": "compute",
+      "topic": "training loop",
+      "prompt": "You have 1,000 training examples and a batch size of 32. How many weight updates happen in one epoch?",
+      "options": ["1,000", "968", "31", "32"],
+      "answer": 3,
+      "explanation": "1000 / 32 = 31.25, so 31 full batches plus a final partial batch of 8 — 32 updates. Answering 1,000 treats every example as its own update, which is a batch size of 1. Answering 31 silently discards the leftover examples, which some training loops really do.",
+      "hint": "What happens to the remainder?"
+    },
+    {
+      "id": "w04-q024",
+      "rev": 1,
+      "kind": "compute",
+      "topic": "parameter counting",
+      "prompt": "A model has a vocabulary of 50,000 tokens and 768-dimensional embeddings. How many parameters are in the embedding table?",
+      "options": ["38.4 million", "50,768", "384,000", "768 million"],
+      "answer": 0,
+      "explanation": "One vector per token: 50,000 × 768 = 38,400,000. Answering 50,768 means you added instead of multiplying. For context, BERT-base has 110M parameters in total — so roughly a third of it is this one lookup table, which is why vocabulary size is a real architectural decision.",
+      "hint": "One row per token, 768 numbers per row."
+    },
+    {
+      "id": "w04-q025",
+      "rev": 1,
+      "kind": "compute",
+      "topic": "loss functions",
+      "prompt": "Predictions are `[2, 4]` and the targets are `[3, 2]`. What is the mean squared error?",
+      "options": ["0.5", "1.5", "2.5", "5"],
+      "answer": 2,
+      "explanation": "Errors are 2 − 3 = −1 and 4 − 2 = 2. Squares: 1 and 4. Mean: 5 / 2 = 2.5. Answering 5 means you summed but forgot to average; 0.5 means you averaged the raw errors, letting −1 and 2 cancel — which is exactly why the squaring is there.",
+      "hint": "Square before averaging, or the errors cancel."
+    },
+    {
+      "id": "w04-q026",
+      "rev": 1,
+      "kind": "compute",
+      "topic": "activations",
+      "prompt": "A network outputs the logits `[1, 1, 1]` for three classes. After softmax, what does each class get?",
+      "options": [
+        "1.0 for the first class, 0 for the others",
+        "About 0.5 each",
+        "It cannot be determined without knowing the weights",
+        "About 0.33 each"
+      ],
+      "answer": 3,
+      "explanation": "Equal logits give equal probabilities, and they must sum to 1, so each gets 1/3. Note that softmax depends only on differences between logits: `[1, 1, 1]` and `[100, 100, 100]` produce exactly the same output. That shift-invariance is what lets implementations subtract the maximum logit for numerical stability.",
+      "hint": "Equal scores, and they have to sum to 1."
+    }
+  ]
+}

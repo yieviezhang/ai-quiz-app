@@ -1,11 +1,11 @@
 {
-  "bankVersion": 1,
+  "bankVersion": 2,
   "nextId": {
     "w01": 19,
     "w02": 18,
     "w03": 15,
-    "w04": 1,
-    "w05": 1,
+    "w04": 27,
+    "w05": 26,
     "w06": 1,
     "w07": 1,
     "w08": 1,
@@ -36,14 +36,14 @@
     {
       "week": 4,
       "title": "Putting It Together",
-      "file": null,
-      "count": 0
+      "file": "./data/week-04.json",
+      "count": 26
     },
     {
       "week": 5,
       "title": "Probability & Loss Functions",
-      "file": null,
-      "count": 0
+      "file": "./data/week-05.json",
+      "count": 25
     },
     {
       "week": 6,
@@ -88,5 +88,5 @@
       "count": 0
     }
   ],
-  "contentHash": "d0126a60d4bf3901"
+  "contentHash": "25aa28de780cecb0"
 }

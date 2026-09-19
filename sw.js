@@ -13,7 +13,7 @@ const VERSION = 'v1.1.1';
 // only in version.json, because sw.js is fetched with updateViaCache:'none'
 // and the browser only notices a new worker when these bytes change. A bank
 // update that left sw.js untouched would serve the old questions forever.
-const BANK = 1;
+const BANK = 2;
 
 const CACHE = `aiquiz-${VERSION}-b${BANK}`;
 
