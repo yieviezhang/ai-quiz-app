@@ -1,0 +1,188 @@
+{
+  "week": 3,
+  "title": "Chain Rule & Backprop",
+  "topics": ["chain rule", "computation graphs", "backpropagation", "gradient descent", "activations"],
+  "questions": [
+    {
+      "id": "w03-q001",
+      "rev": 1,
+      "kind": "concept",
+      "topic": "chain rule",
+      "prompt": "The chain rule says that to differentiate a composed function f(g(x)), you should:",
+      "options": [
+        "Add the derivatives of the inner and outer functions",
+        "Take the derivative of the outer function and ignore the inner one",
+        "Multiply the outer function's rate of change by the inner function's rate of change",
+        "Divide the outer derivative by the inner derivative"
+      ],
+      "answer": 2,
+      "explanation": "The idea is simpler than the notation. If x moves 1 unit, g moves 3 units, and f moves 2 units for every unit of g, then f moves 2 × 3 = 6 units. Rates multiply along a chain — like gears. Written out: dy/dx = (dy/du) · (du/dx)."
+    },
+    {
+      "id": "w03-q002",
+      "rev": 1,
+      "kind": "compute",
+      "topic": "chain rule",
+      "prompt": "What is the derivative of (3x + 1)² with respect to x?",
+      "options": ["2(3x + 1)", "6x + 1", "9(3x + 1)", "6(3x + 1)"],
+      "answer": 3,
+      "explanation": "Outer function is u², whose derivative is 2u → 2(3x + 1). Inner function is 3x + 1, whose derivative is 3. Multiply: 2(3x + 1) · 3 = 6(3x + 1). Answering 2(3x + 1) is the single most common chain-rule mistake — you stopped before the inner derivative.",
+      "hint": "Differentiate the outside, then multiply by the derivative of the inside."
+    },
+    {
+      "id": "w03-q003",
+      "rev": 1,
+      "kind": "compute",
+      "topic": "chain rule",
+      "prompt": "If dy/du = 4 and du/dx = 3, what is dy/dx?",
+      "options": ["7", "12", "0.75", "1"],
+      "answer": 1,
+      "explanation": "4 × 3 = 12. Rates multiply, they don't add — answering 7 means you added them. Sanity check with units: y changes 4 per unit of u, and u changes 3 per unit of x, so one unit of x moves y by 12.",
+      "hint": "Chain the two rates together."
+    },
+    {
+      "id": "w03-q004",
+      "rev": 1,
+      "kind": "concept",
+      "topic": "backpropagation",
+      "prompt": "Why is the chain rule the heart of backpropagation?",
+      "options": [
+        "A network is a composition of functions, so the derivative of the loss with respect to any weight is a product of local derivatives along the path from that weight to the loss",
+        "Because the chain rule makes matrix multiplication faster",
+        "Because it guarantees the loss reaches zero",
+        "Because it decides how many layers the network should have"
+      ],
+      "answer": 0,
+      "explanation": "layer3(layer2(layer1(x))) is one giant composed function. Backprop is nothing more than the chain rule applied systematically, reusing shared sub-results instead of recomputing them. That reuse is the only reason training a billion-parameter model is feasible at all."
+    },
+    {
+      "id": "w03-q005",
+      "rev": 1,
+      "kind": "concept",
+      "topic": "forward pass",
+      "prompt": "What does the forward pass compute?",
+      "options": [
+        "The gradient of every weight",
+        "The updated weights",
+        "The optimal learning rate",
+        "The prediction and the loss, while storing the intermediate values needed later"
+      ],
+      "answer": 3,
+      "explanation": "Forward = run the data through and see how wrong you are. The storing part matters: PyTorch keeps those intermediate activations precisely so the backward pass can use them, which is why long sequences blow up your GPU memory even before any gradient is computed."
+    },
+    {
+      "id": "w03-q006",
+      "rev": 1,
+      "kind": "concept",
+      "topic": "backpropagation",
+      "prompt": "What does the backward pass compute?",
+      "options": [
+        "The model's prediction",
+        "The next batch of training data",
+        "The gradient of the loss with respect to every parameter",
+        "The number of epochs remaining"
+      ],
+      "answer": 2,
+      "explanation": "One number goes in (the loss) and millions come out (one gradient per parameter), each answering \"would nudging this weight up make the loss better or worse, and by how much?\" Backprop computes all of them in roughly the cost of one extra forward pass."
+    },
+    {
+      "id": "w03-q007",
+      "rev": 1,
+      "kind": "compute",
+      "topic": "computation graphs",
+      "prompt": "In a computation graph, a node computes z = x + y. What is ∂z/∂x?",
+      "options": ["1", "y", "x", "0"],
+      "answer": 0,
+      "explanation": "Nudge x by a tiny amount and z moves by exactly the same amount, so the rate is 1. This is why an addition node is called a *gradient distributor* — it passes the incoming gradient through unchanged to both inputs.",
+      "hint": "If x goes up by 0.01, how much does z go up?"
+    },
+    {
+      "id": "w03-q008",
+      "rev": 1,
+      "kind": "compute",
+      "topic": "computation graphs",
+      "prompt": "A node computes z = x · y, with x = 3 and y = 5. What is ∂z/∂x?",
+      "options": ["3", "15", "5", "1"],
+      "answer": 2,
+      "explanation": "∂z/∂x = y = 5. The multiply node *swaps*: the gradient flowing to each input is scaled by the other input's value. Answering 15 means you computed z itself, not its rate of change.",
+      "hint": "Treat y as a constant multiplier sitting in front of x."
+    },
+    {
+      "id": "w03-q009",
+      "rev": 1,
+      "kind": "concept",
+      "topic": "activations",
+      "prompt": "For a negative input, the gradient of ReLU is:",
+      "options": ["1", "0", "the input value itself", "undefined"],
+      "answer": 1,
+      "explanation": "ReLU(x) = max(0, x) is perfectly flat for x < 0, so the slope is 0. A zero gradient means no update reaches that path — the origin of the \"dying ReLU\" problem, where a neuron that always receives negative inputs stops learning forever. For x > 0 the gradient is exactly 1, which is what makes ReLU so friendly to deep networks."
+    },
+    {
+      "id": "w03-q010",
+      "rev": 1,
+      "kind": "compute",
+      "topic": "activations",
+      "prompt": "The derivative of the sigmoid is σ(x)·(1 − σ(x)). If σ(x) = 0.8, what is the derivative there?",
+      "options": ["0.8", "0.2", "0.64", "0.16"],
+      "answer": 3,
+      "explanation": "0.8 × (1 − 0.8) = 0.8 × 0.2 = 0.16. Note the elegance: you never need x, only the output you already computed in the forward pass. The maximum of this expression is 0.25 at σ = 0.5 — remember that number for the next question.",
+      "hint": "Substitute 0.8 into σ·(1 − σ)."
+    },
+    {
+      "id": "w03-q011",
+      "rev": 1,
+      "kind": "concept",
+      "topic": "backpropagation",
+      "prompt": "Why do deep networks using sigmoid activations suffer from vanishing gradients?",
+      "options": [
+        "Because the loss function has no minimum",
+        "Because backprop multiplies many local gradients together, and a sigmoid derivative is at most 0.25, so the product shrinks toward zero",
+        "Because the weights grow too large",
+        "Because the forward pass loses information"
+      ],
+      "answer": 1,
+      "explanation": "0.25¹⁰ ≈ 0.00000095. After ten sigmoid layers, the gradient reaching the early weights is effectively zero and those layers simply stop learning. ReLU's gradient of exactly 1 in the positive region is the fix — this one fact is much of why deep learning became practical after 2011."
+    },
+    {
+      "id": "w03-q012",
+      "rev": 1,
+      "kind": "compute",
+      "topic": "gradient descent",
+      "prompt": "A weight is 2.0, its gradient is 0.5, and the learning rate is 0.1. What is the updated weight?",
+      "options": ["1.95", "2.05", "1.5", "2.5"],
+      "answer": 0,
+      "explanation": "w ← w − lr · gradient = 2.0 − 0.1 × 0.5 = 2.0 − 0.05 = 1.95. Answering 2.05 means you added instead of subtracted — that moves you *uphill* and the loss gets worse. This three-number arithmetic is the entire update step for every one of a model's parameters.",
+      "hint": "Multiply the learning rate by the gradient, then subtract."
+    },
+    {
+      "id": "w03-q013",
+      "rev": 1,
+      "kind": "concept",
+      "topic": "gradient descent",
+      "prompt": "Why does gradient descent *subtract* the gradient rather than add it?",
+      "options": [
+        "Because the gradient points in the direction of steepest increase of the loss, so you move against it to decrease the loss",
+        "Because subtraction is computationally cheaper",
+        "Because gradients are always negative",
+        "Because subtracting keeps the weights small"
+      ],
+      "answer": 0,
+      "explanation": "The gradient is the uphill direction. You want to go downhill, so you step the opposite way — the mental image is walking down a foggy valley by always stepping against the local slope. The learning rate is just how big each step is."
+    },
+    {
+      "id": "w03-q014",
+      "rev": 1,
+      "kind": "concept",
+      "topic": "computation graphs",
+      "prompt": "Why does the backward pass need values computed during the forward pass?",
+      "options": [
+        "To display them to the user",
+        "To compute the learning rate",
+        "Because local gradients often depend on those values — for z = x·y, ∂z/∂x = y — so they must be stored",
+        "Because the forward pass has to be run a second time"
+      ],
+      "answer": 2,
+      "explanation": "A multiply node can't hand back a gradient without knowing the other input's value, so the framework caches activations during the forward pass. That cache is real memory: it's why training needs far more GPU RAM than inference, and why gradient checkpointing (recompute instead of store) is a standard trick for large models."
+    }
+  ]
+}

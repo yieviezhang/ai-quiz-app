@@ -1,0 +1,210 @@
+/* Headless logic tests for store.js + bank.js + mathtext.js.
+ *
+ * Run from the repo root:
+ *   /System/Library/Frameworks/JavaScriptCore.framework/Versions/A/Helpers/jsc \
+ *     -m tools/selftest.mjs
+ *
+ * Only covers logic that doesn't touch the DOM — the UI is verified by hand
+ * on the phone.
+ */
+
+/* ---------- browser stubs ---------- */
+
+const mem = new Map();
+globalThis.localStorage = {
+  getItem: k => (mem.has(k) ? mem.get(k) : null),
+  setItem: (k, v) => mem.set(k, String(v)),
+  removeItem: k => mem.delete(k),
+  clear: () => mem.clear(),
+};
+globalThis.navigator = { storage: { persist: () => Promise.resolve(false) } };
+globalThis.structuredClone ??= v => JSON.parse(JSON.stringify(v));
+globalThis.fetch = async url => {
+  const text = readFile(String(url).replace(/^\.\//, ''));
+  return { ok: true, status: 200, json: async () => JSON.parse(text) };
+};
+
+const store = await import('../js/store.js');
+const bank = await import('../js/bank.js');
+const { mathtext, plaintext } = await import('../js/mathtext.js');
+
+/* ---------- harness ---------- */
+
+let pass = 0;
+const failures = [];
+
+function check(name, cond, detail = '') {
+  if (cond) { pass++; return; }
+  failures.push(`${name}${detail ? ` — ${detail}` : ''}`);
+}
+
+const eq = (name, actual, expected) =>
+  check(name, JSON.stringify(actual) === JSON.stringify(expected),
+    `got ${JSON.stringify(actual)}, expected ${JSON.stringify(expected)}`);
+
+/* ---------- bank loading ---------- */
+
+store.init();
+await bank.load();
+
+const ids = bank.allIds();
+eq('bank loads 49 questions', ids.length, 49);
+eq('12 weeks listed', bank.allWeeks().length, 12);
+eq('3 weeks authored', bank.allWeeks().filter(bank.isAuthored).length, 3);
+check('bankVersion surfaced', bank.bankVersion() === 1);
+check('every id is unique', new Set(ids).size === ids.length);
+
+for (const q of ids.map(bank.getQuestion)) {
+  check(`${q.id} answer in range`, q.answer >= 0 && q.answer < q.options.length);
+  check(`${q.id} has explanation`, typeof q.explanation === 'string' && q.explanation.length > 20);
+}
+
+/* ---------- the 2-strikes-out review rule ---------- */
+
+const A = ids[0];
+eq('unseen question is not in review', store.isInReview(A), false);
+eq('unseen state', store.stateOf(A), 'unseen');
+
+store.recordAnswer(A, 1, false);
+eq('wrong -> in review', store.isInReview(A), true);
+eq('wrong -> state', store.stateOf(A), 'wrong');
+eq('wrong -> not mastered', store.isMastered(A), false);
+
+store.recordAnswer(A, 0, true);
+eq('right once -> still in review', store.isInReview(A), true);
+eq('right once -> learning', store.stateOf(A), 'learning');
+
+store.recordAnswer(A, 0, true);
+eq('right twice -> mastered', store.isMastered(A), true);
+eq('right twice -> out of review', store.isInReview(A), false);
+
+store.recordAnswer(A, 2, false);
+eq('wrong again -> back in review', store.isInReview(A), true);
+eq('wrong again -> streak reset', store.getRecord(A).streak, 0);
+eq('wrong picks accumulate distinctly', store.getRecord(A).wrongPicks, [1, 2]);
+
+// A clean first attempt counts as mastery — no limbo state.
+const B = ids[1];
+store.recordAnswer(B, bank.getQuestion(B).answer, true);
+eq('right on first try -> mastered', store.isMastered(B), true);
+eq('right on first try -> not in review', store.isInReview(B), false);
+store.recordAnswer(B, bank.getQuestion(B).answer, true);
+eq('still mastered after a second right', store.isMastered(B), true);
+
+// Every attempted question must land in exactly one bucket.
+for (const id of [A, B]) {
+  const buckets = [store.isMastered(id), store.isInReview(id), store.stateOf(id) === 'unseen'];
+  eq(`${id} is in exactly one bucket`, buckets.filter(Boolean).length, 1);
+}
+
+/* ---------- review pool ordering ---------- */
+
+const pool = bank.reviewPool();
+check('review pool holds A but not B', pool.includes(A) && !pool.includes(B));
+check('review pool puts outright-wrong first',
+  pool.length === 0 || store.getRecord(pool[0]).last === 0);
+
+/* ---------- week aggregates ---------- */
+
+const w1 = bank.weekStats(1);
+eq('week 1 total', w1.total, 18);
+eq('week 1 counts add up', w1.mastered + w1.inReview + w1.unseen, w1.total);
+eq('week 4 is empty', bank.weekStats(4).total, 0);
+eq('currentWeek is 1 after touching week 1', bank.currentWeek(), 1);
+
+/* ---------- daily pool ---------- */
+
+const daily = bank.dailyPool();
+eq('daily pool size', daily.length, 10);
+eq('daily pool has no duplicates', new Set(daily).size, daily.length);
+check('daily pool is all live ids', daily.every(id => bank.getQuestion(id)));
+check('daily pool leads with the review pile', daily[0] === A);
+eq('daily pool is stable across calls', bank.dailyPool(), daily);
+
+/* ---------- stats ---------- */
+
+const s = store.stats(ids);
+eq('answered counts distinct questions', s.answered, 2);
+eq('stats total', s.total, 49);
+check('accuracy between 0 and 1', s.accuracy > 0 && s.accuracy <= 1);
+eq('streak started at 1', store.touchStreak(), 1);
+
+/* ---------- export / import round trip ---------- */
+
+const blob = store.buildExport(ids);
+eq('export is tagged', blob.app, 'ai-quiz-app');
+eq('export carries stats', blob.stats.answered, 2);
+const text = JSON.stringify(blob);
+
+store.resetAll();
+eq('reset clears progress', store.stats(ids).answered, 0);
+
+const res = store.importBlob(text, 'replace');
+check('import succeeds', res.ok, res.message);
+eq('import restores answered count', store.stats(ids).answered, 2);
+eq('import restores the A record', store.getRecord(A).wrongPicks, [1, 2]);
+eq('import restores mastery of B', store.isMastered(B), true);
+
+// Merge must not lose newer local progress.
+store.recordAnswer(A, bank.getQuestion(A).answer, true);
+const nBefore = store.getRecord(A).n;
+const merged = store.importBlob(text, 'merge');
+check('merge succeeds', merged.ok, merged.message);
+check('merge keeps the higher attempt count',
+  store.getRecord(A).n >= nBefore, `n=${store.getRecord(A).n} was ${nBefore}`);
+check('merge never lets correct exceed attempts',
+  store.getRecord(A).c <= store.getRecord(A).n);
+
+/* ---------- import rejections ---------- */
+
+check('rejects junk', !store.importBlob('not json').ok);
+check('rejects a foreign app', !store.importBlob('{"app":"something-else"}').ok);
+check('rejects a newer schema', !store.importBlob('{"app":"ai-quiz-app","schema":99,"progress":{}}').ok);
+check('rejects a blob with no progress', !store.importBlob('{"app":"ai-quiz-app","schema":1}').ok);
+
+/* ---------- retired records survive ---------- */
+
+store.importBlob(JSON.stringify({
+  app: 'ai-quiz-app', schema: 1,
+  progress: { 'w99-q001': { n: 3, c: 1, streak: 0, last: 0, lastAt: '2026-01-01', wrongPicks: [0] } },
+}), 'merge');
+eq('a retired id is kept, not dropped', store.retiredIds(bank.allSet()), ['w99-q001']);
+eq('retired ids stay out of stats', store.stats(ids).answered, 2);
+eq('compact removes exactly the retired ones', store.compact(bank.allSet()), 1);
+eq('compact leaves live records alone', store.stats(ids).answered, 2);
+
+/* ---------- mathtext ---------- */
+
+eq('escapes html', mathtext('<script>'), '&lt;script&gt;');
+eq('backticks become mono', mathtext('`[1, 2]`'), '<span class="mono">[1, 2]</span>');
+eq('superscript', mathtext('x^2'), 'x<sup>2</sup>');
+eq('braced superscript', mathtext('e^{-x}'), 'e<sup>-x</sup>');
+eq('subscript', mathtext('d_k'), 'd<sub>k</sub>');
+eq('no transforms inside backticks', mathtext('`a_b`'), '<span class="mono">a_b</span>');
+eq('plaintext strips markup', plaintext('`[1, 2]` and x^{2}'), '[1, 2] and x2');
+
+/* ---------- authored content checks ---------- */
+
+for (const w of bank.allWeeks().filter(bank.isAuthored)) {
+  const qs = w.questions;
+  const concept = qs.filter(q => q.kind === 'concept').length;
+  const ratio = concept / qs.length;
+  check(`week ${w.week} concept ratio ~60%`, ratio >= 0.5 && ratio <= 0.72,
+    `${Math.round(ratio * 100)}% concept`);
+  const dist = {};
+  for (const q of qs.filter(q => q.options.length === 4)) dist[q.answer] = (dist[q.answer] || 0) + 1;
+  const counts = [0, 1, 2, 3].map(i => dist[i] || 0);
+  check(`week ${w.week} answer indices are spread`, Math.max(...counts) - Math.min(...counts) <= 4,
+    `distribution ${counts.join(',')}`);
+  check(`week ${w.week} has no free-text questions`, qs.every(q => Array.isArray(q.options)));
+}
+
+/* ---------- report ---------- */
+
+print(`\n${pass} checks passed`);
+if (failures.length) {
+  print(`${failures.length} FAILED:`);
+  for (const f of failures) print(`  ✗ ${f}`);
+} else {
+  print('all green');
+}

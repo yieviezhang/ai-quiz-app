@@ -1,0 +1,57 @@
+/* Design tokens. Cool white + light blue, Apple Music-ish.
+   Every color lives here so dark mode is one later block. */
+
+:root {
+  /* Surfaces */
+  --bg-grouped: #F2F6FB;
+  --bg-card: #FFFFFF;
+  --bg-raised: #E8F0FA;
+  --header-bg: rgba(242, 246, 251, 0.72);
+
+  /* Accent */
+  --accent: #0A7CFF;
+  --accent-press: #0060D0;
+  --accent-soft: #E1EDFD;
+  --accent-grad-a: #4DA8FF;
+  --accent-grad-b: #0A6BE0;
+
+  /* Text */
+  --text-primary: #0B1A2B;
+  --text-secondary: #5B7189;
+  --text-tertiary: #93A5B8;
+  --text-on-accent: #FFFFFF;
+
+  /* Lines */
+  --separator: rgba(11, 26, 43, 0.10);
+
+  /* Semantic */
+  --correct: #1EA97C;
+  --correct-soft: #E2F5EE;
+  --wrong: #E5484D;
+  --wrong-soft: #FDECEC;
+
+  /* Shape */
+  --radius-card: 16px;
+  --radius-row: 12px;
+  --radius-pill: 999px;
+
+  /* Space */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+
+  /* Type */
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* Elevation */
+  --shadow-card: 0 1px 2px rgba(11, 26, 43, 0.05), 0 6px 20px rgba(11, 58, 110, 0.06);
+
+  /* Layout */
+  --header-h: 52px;
+  --tabbar-h: 50px;
+  --content-max: 520px;
+}

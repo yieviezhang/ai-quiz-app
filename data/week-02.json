@@ -1,0 +1,229 @@
+{
+  "week": 2,
+  "title": "Matrices & Derivatives",
+  "topics": ["linear transformations", "matrix multiplication", "determinant", "derivatives", "power rule"],
+  "questions": [
+    {
+      "id": "w02-q001",
+      "rev": 1,
+      "kind": "concept",
+      "topic": "linear transformations",
+      "prompt": "What does a linear transformation guarantee?",
+      "options": [
+        "All points move the same distance",
+        "Straight lines stay straight and the origin stays fixed",
+        "Circles remain circles",
+        "Every vector gets longer"
+      ],
+      "answer": 1,
+      "explanation": "Linear means exactly two promises: lines stay lines (never curves), and the origin doesn't move. Everything else is negotiable — shapes can stretch, squash, rotate, and shear. That narrowness is what makes matrices able to describe the whole transformation with just a few numbers."
+    },
+    {
+      "id": "w02-q002",
+      "rev": 1,
+      "kind": "concept",
+      "topic": "matrices",
+      "prompt": "In a 2×2 matrix, what do the columns represent?",
+      "options": [
+        "Where the basis vectors (1,0) and (0,1) land after the transformation",
+        "The x and y coordinates of the input vector",
+        "The eigenvalues of the transformation",
+        "The dot products of the two rows"
+      ],
+      "answer": 0,
+      "explanation": "This is the single most useful fact about matrices. Column 1 is where (1,0) ends up. Column 2 is where (0,1) ends up. A matrix isn't a grid of arbitrary numbers — it's a record of where the axes went."
+    },
+    {
+      "id": "w02-q003",
+      "rev": 1,
+      "kind": "compute",
+      "topic": "matrices",
+      "prompt": "Given the matrix with columns `(3, 0)` and `(0, 2)`, where does the basis vector (1, 0) land?",
+      "options": ["(1, 0)", "(0, 3)", "(3, 0)", "(3, 2)"],
+      "answer": 2,
+      "explanation": "No computation needed — the first column *is* the answer: (3, 0). That's what columns mean. This matrix stretches x by 3 and y by 2.",
+      "hint": "You don't need to multiply anything. Re-read what a column represents."
+    },
+    {
+      "id": "w02-q004",
+      "rev": 1,
+      "kind": "compute",
+      "topic": "matrix multiplication",
+      "prompt": "Compute the matrix with columns `(2, 0)` and `(1, 3)`, applied to the vector `[1, 1]`. Give the result as (x, y).",
+      "options": ["(2, 3)", "(3, 3)", "(2, 1)", "(3, 4)"],
+      "answer": 1,
+      "explanation": "1 × column1 + 1 × column2 = 1·(2,0) + 1·(1,3) = (2+1, 0+3) = (3, 3). Or read it by rows: (2·1 + 1·1, 0·1 + 3·1) = (3, 3). Both routes always agree — pick whichever you find easier.",
+      "hint": "Scale each column by the matching component of the input, then add the columns."
+    },
+    {
+      "id": "w02-q005",
+      "rev": 1,
+      "kind": "compute",
+      "topic": "matrix multiplication",
+      "prompt": "Compute the matrix with columns `(1, 0)` and `(-1, 1)`, applied to the vector `[3, 2]`. Give the result as (x, y).",
+      "options": ["(5, 2)", "(3, 2)", "(1, -2)", "(1, 2)"],
+      "answer": 3,
+      "explanation": "3 × (1,0) + 2 × (−1,1) = (3,0) + (−2,2) = (1, 2). This is a shear: the y coordinate is untouched while x gets pushed sideways in proportion to y. Answering (5, 2) means you dropped the minus sign.",
+      "hint": "The second column has a negative first entry — it pulls x backwards."
+    },
+    {
+      "id": "w02-q006",
+      "rev": 1,
+      "kind": "compute",
+      "topic": "matrix multiplication",
+      "prompt": "Compute the matrix with columns `(0, 1)` and `(-1, 0)`, applied to the vector `[1, 0]`. Give the result as (x, y).",
+      "options": ["(0, 1)", "(1, 0)", "(0, -1)", "(-1, 0)"],
+      "answer": 0,
+      "explanation": "1 × (0,1) + 0 × (−1,0) = (0, 1). Notice you didn't really have to compute: the input *was* the first basis vector, so the answer is just the first column. This matrix rotates everything 90° counterclockwise.",
+      "hint": "The input is (1, 0) itself. What does column 1 tell you directly?"
+    },
+    {
+      "id": "w02-q007",
+      "rev": 1,
+      "kind": "concept",
+      "topic": "linear transformations",
+      "prompt": "Why does knowing where just the two basis vectors land tell you where every other point goes?",
+      "options": [
+        "Because all vectors have the same length as the basis vectors",
+        "Because the matrix stores every point's destination individually",
+        "Because any vector (x, y) is x copies of (1,0) plus y copies of (0,1), and linearity lets you transform each piece separately and add the results",
+        "Because basis vectors stay orthogonal after any transformation"
+      ],
+      "answer": 2,
+      "explanation": "This is the load-bearing idea. Decompose, transform each piece, recombine. The distributive law is what licenses that middle step — and \"linear\" is precisely the promise that the distributive law holds. Two columns describe infinitely many points."
+    },
+    {
+      "id": "w02-q008",
+      "rev": 1,
+      "kind": "concept",
+      "topic": "determinant",
+      "prompt": "A matrix has columns `(1, 2)` and `(2, 4)`. What happens to the 2D plane under this transformation?",
+      "options": [
+        "It rotates 90 degrees",
+        "It collapses onto a single line, because both columns point the same direction",
+        "Every vector doubles in length",
+        "Nothing — this is the identity transformation"
+      ],
+      "answer": 1,
+      "explanation": "(2,4) is just 2 × (1,2), so both columns point along the same line. Every output is some multiple of (1,2), which means the entire 2D plane gets squashed into 1D. Its determinant is 1·4 − 2·2 = 0 — that zero is exactly this collapse."
+    },
+    {
+      "id": "w02-q009",
+      "rev": 1,
+      "kind": "concept",
+      "topic": "determinant",
+      "prompt": "True or false: if a matrix has determinant 0, the transformation crushes space into a lower dimension.",
+      "options": ["True", "False"],
+      "answer": 0,
+      "explanation": "True. det = 0 means the columns are linearly dependent, so the output loses a dimension — 2D flattens to a line, 3D to a plane or line. Information is destroyed and cannot be recovered, which is why a det-0 matrix has no inverse. In deep networks, layers with near-zero determinant are one route to vanishing gradients."
+    },
+    {
+      "id": "w02-q010",
+      "rev": 1,
+      "kind": "concept",
+      "topic": "linear systems",
+      "prompt": "Solving a system of linear equations Ax = b is equivalent to:",
+      "options": [
+        "Computing the dot product of two vectors",
+        "Adding two matrices together",
+        "Normalizing a vector to unit length",
+        "Finding which input vector, once transformed by A, lands on b"
+      ],
+      "answer": 3,
+      "explanation": "Reframe it: some unknown point x got transformed by A and ended up at b. Solving means running the transformation backwards to find where it started. This is why det = 0 breaks solving — if A crushed the plane to a line, you can't uniquely un-crush it."
+    },
+    {
+      "id": "w02-q011",
+      "rev": 1,
+      "kind": "concept",
+      "topic": "matrix multiplication",
+      "prompt": "Multiplying two matrices, B × A, represents:",
+      "options": [
+        "Adding the two transformations together",
+        "The dot product of the two matrices",
+        "Applying A first, then B — two steps compressed into one matrix",
+        "Applying the same transformation twice"
+      ],
+      "answer": 2,
+      "explanation": "Matrix × matrix is composition of functions, and it reads right to left: A happens first. The remarkable part is that the combination is itself just another matrix — which is why a 50-layer network's worth of linear steps can always be collapsed into one. (Nonlinear activations between layers are what stop that collapse from making deep networks pointless.)"
+    },
+    {
+      "id": "w02-q012",
+      "rev": 1,
+      "kind": "concept",
+      "topic": "derivatives",
+      "prompt": "The derivative of a function at a point tells you:",
+      "options": [
+        "The area under the curve at that point",
+        "The slope of the function at that point — its instantaneous rate of change",
+        "The maximum value the function reaches",
+        "The average value of the function"
+      ],
+      "answer": 1,
+      "explanation": "Derivative = slope = rate of change. All three words mean the same thing. Concretely: \"if I nudge the input a tiny bit, how much does the output move, and in which direction?\" That question is the entire basis of training a neural network."
+    },
+    {
+      "id": "w02-q013",
+      "rev": 1,
+      "kind": "compute",
+      "topic": "power rule",
+      "prompt": "What is the derivative of x³ with respect to x?",
+      "options": ["3x²", "x²", "3x", "x⁴/4"],
+      "answer": 0,
+      "explanation": "Power rule: bring the exponent to the front, then subtract one from it. x³ → 3x². (x⁴/4 is the integral, going the other way.)",
+      "hint": "Exponent comes down to the front; exponent drops by one."
+    },
+    {
+      "id": "w02-q014",
+      "rev": 1,
+      "kind": "compute",
+      "topic": "power rule",
+      "prompt": "What is the derivative of 5x² + 3x with respect to x?",
+      "options": ["10x", "5x + 3", "10x + 3", "10x² + 3x"],
+      "answer": 2,
+      "explanation": "Differentiate each term separately and keep the sum: 5x² → 10x, and 3x → 3. So the answer is 10x + 3. Answering 10x means you forgot the second term — derivatives distribute over addition, so no term can be dropped.",
+      "hint": "Handle each term on its own, then add the results."
+    },
+    {
+      "id": "w02-q015",
+      "rev": 1,
+      "kind": "compute",
+      "topic": "derivatives",
+      "prompt": "The derivative of x² is 2x. What is its value at x = 3?",
+      "options": ["9", "6", "3", "2"],
+      "answer": 1,
+      "explanation": "Substitute into the derivative, not the original function: 2 · 3 = 6. Answering 9 means you evaluated x² itself. The meaning: at x = 3, the curve is climbing 6 units of output per 1 unit of input.",
+      "hint": "Plug 3 into 2x, not into x²."
+    },
+    {
+      "id": "w02-q016",
+      "rev": 1,
+      "kind": "concept",
+      "topic": "derivatives",
+      "prompt": "At a local minimum of a smooth function, the derivative:",
+      "options": [
+        "Is at its largest positive value",
+        "Is undefined",
+        "Equals the function's value there",
+        "Equals zero"
+      ],
+      "answer": 3,
+      "explanation": "At the bottom of a valley the curve is momentarily flat, so the slope is 0. This is why gradient descent works and also why it stops: the algorithm keeps stepping downhill until the gradient vanishes. Loss functions are valleys, and training is a walk to the bottom."
+    },
+    {
+      "id": "w02-q017",
+      "rev": 1,
+      "kind": "concept",
+      "topic": "derivatives",
+      "prompt": "Why do derivatives matter for training a neural network?",
+      "options": [
+        "The gradient tells you which direction to nudge each weight in order to reduce the loss",
+        "The derivative computes the model's accuracy",
+        "Derivatives make matrix multiplication faster",
+        "The derivative determines how many layers the network needs"
+      ],
+      "answer": 0,
+      "explanation": "A network has millions of weights and one loss number. The derivative of the loss with respect to each weight answers \"would raising this weight make things better or worse, and by how much?\" Nudge every weight against its gradient and the loss goes down. That's training — no magic beyond it."
+    }
+  ]
+}

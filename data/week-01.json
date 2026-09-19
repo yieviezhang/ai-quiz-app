@@ -1,0 +1,244 @@
+{
+  "week": 1,
+  "title": "Vectors & What Neural Nets Are",
+  "topics": ["vectors", "embeddings", "dot product", "L2 norm", "cosine similarity"],
+  "questions": [
+    {
+      "id": "w01-q001",
+      "rev": 1,
+      "kind": "concept",
+      "topic": "embeddings",
+      "prompt": "In machine learning, a word embedding is best described as:",
+      "options": [
+        "A dictionary mapping words to their definitions",
+        "A one-hot encoded binary vector",
+        "A fixed-length vector of real numbers representing a word",
+        "A probability distribution over the vocabulary"
+      ],
+      "answer": 2,
+      "explanation": "An embedding is a dense, fixed-length vector of real numbers. Unlike one-hot encoding — which is sparse and enormous, one slot per vocabulary word — an embedding packs meaning into a few hundred numbers, and similar words end up with similar numbers."
+    },
+    {
+      "id": "w01-q002",
+      "rev": 1,
+      "kind": "concept",
+      "topic": "embeddings",
+      "prompt": "True or false: if two word vectors have a small Euclidean distance between them, the words probably have similar meanings.",
+      "options": ["True", "False"],
+      "answer": 0,
+      "explanation": "True. This is the founding principle of embedding spaces: semantic similarity is stored as geometric closeness. Similar things live near each other — that is the whole trick."
+    },
+    {
+      "id": "w01-q003",
+      "rev": 1,
+      "kind": "concept",
+      "topic": "dimension",
+      "prompt": "BERT-base uses 768-dimensional embeddings. What does the 768 actually count?",
+      "options": [
+        "The number of words in BERT's vocabulary",
+        "The number of components (individual numbers) in each word's vector",
+        "The number of layers in the model",
+        "The number of attention heads"
+      ],
+      "answer": 1,
+      "explanation": "Dimension = how many numbers are in the list. Each word BERT-base knows is represented by 768 numbers. GPT-3 uses 12,288 — same idea, a longer list per word."
+    },
+    {
+      "id": "w01-q004",
+      "rev": 1,
+      "kind": "concept",
+      "topic": "vectors",
+      "prompt": "Why can't a single number (a scalar) capture a word's full meaning?",
+      "options": [
+        "Scalars can only hold positive values",
+        "Computers cannot store single numbers precisely enough",
+        "Scalars take up too much memory",
+        "A word has many attributes — gender, sentiment, category — and each needs its own dimension"
+      ],
+      "answer": 3,
+      "explanation": "One number can encode one attribute. But \"queen\" is royal AND female AND human AND singular. You need many numbers — a vector — to hold all of those at once."
+    },
+    {
+      "id": "w01-q005",
+      "rev": 1,
+      "kind": "compute",
+      "topic": "vector addition",
+      "prompt": "Compute `[1, -2, 3]` + `[4, 5, -1]`",
+      "options": ["[5, 3, 2]", "[-3, -7, 4]", "[5, -7, 2]", "[4, -10, -3]"],
+      "answer": 0,
+      "explanation": "Add component by component: 1+4 = 5, −2+5 = 3, 3+(−1) = 2 → `[5, 3, 2]`. If you got `[-3, -7, 4]` you subtracted; `[4, -10, -3]` means you multiplied.",
+      "hint": "Line the two vectors up and add each matching pair."
+    },
+    {
+      "id": "w01-q006",
+      "rev": 1,
+      "kind": "compute",
+      "topic": "scalar multiplication",
+      "prompt": "Compute 3 × `[2, -1, 4]`",
+      "options": ["[6, -1, 4]", "[5, 2, 7]", "[6, -3, 12]", "[6, 3, 12]"],
+      "answer": 2,
+      "explanation": "Multiply every component by 3: `[6, -3, 12]`. Note the −1 stays negative. Scaling changes the vector's length, never its direction — it points the same way, just longer.",
+      "hint": "Every component gets multiplied, not just the first."
+    },
+    {
+      "id": "w01-q007",
+      "rev": 1,
+      "kind": "concept",
+      "topic": "embeddings",
+      "prompt": "The famous word2vec result is vector(king) − vector(man) + vector(woman) ≈ vector(queen). Why does this work?",
+      "options": [
+        "The model memorized this specific analogy during training",
+        "Directions in embedding space encode semantic relationships, so the \"gender direction\" transfers between words",
+        "\"queen\" happens to be the nearest neighbour of \"king\"",
+        "The two vectors differ in exactly one dimension"
+      ],
+      "answer": 1,
+      "explanation": "Nothing memorized it. Subtracting man from king isolates a direction that means roughly \"royalty minus maleness\"; adding woman walks that same direction from a different starting point. Relationships live in directions, not positions."
+    },
+    {
+      "id": "w01-q008",
+      "rev": 1,
+      "kind": "concept",
+      "topic": "dimension",
+      "prompt": "GPT-3 uses 12,288-dimensional embeddings rather than, say, 3-dimensional ones. What's the advantage?",
+      "options": [
+        "More dimensions make the model run faster",
+        "Fewer dimensions would actually use more memory",
+        "There is no real advantage — the number is arbitrary",
+        "More dimensions give the model room to encode finer distinctions between words"
+      ],
+      "answer": 3,
+      "explanation": "Each dimension is a slot for an attribute. Three slots forces the model to jam all of English into three numbers; 12,288 slots lets it separate \"bank (river)\" from \"bank (money)\". It's the difference between a 3-crayon box and a 12,288-crayon box."
+    },
+    {
+      "id": "w01-q009",
+      "rev": 1,
+      "kind": "compute",
+      "topic": "dot product",
+      "prompt": "Compute the dot product `[2, 3, 1]` · `[4, -1, 5]`",
+      "options": ["10", "16", "14", "0"],
+      "answer": 0,
+      "explanation": "Multiply matching components, then add: 2·4 + 3·(−1) + 1·5 = 8 − 3 + 5 = 10. If you got 16 you dropped the minus sign; 14 means you added the vectors first and then summed.",
+      "hint": "Multiply the pairs first, then add all three products — watch the negative."
+    },
+    {
+      "id": "w01-q010",
+      "rev": 1,
+      "kind": "compute",
+      "topic": "L2 norm",
+      "prompt": "Given v = `[3, 4]`, compute its L2 norm ‖v‖",
+      "options": ["7", "5", "25", "12"],
+      "answer": 1,
+      "explanation": "‖v‖ = √(3² + 4²) = √(9 + 16) = √25 = 5. The classic 3-4-5 triangle — the norm is just Pythagoras, extended to any number of dimensions. If you answered 25 you forgot the square root; 7 means you added the components.",
+      "hint": "Square each component, add, then take the square root."
+    },
+    {
+      "id": "w01-q011",
+      "rev": 1,
+      "kind": "concept",
+      "topic": "dot product",
+      "prompt": "Two vectors have a dot product of 0. Geometrically, this means they are:",
+      "options": [
+        "Parallel — pointing the same direction",
+        "Opposite — pointing in reverse directions",
+        "Orthogonal — perpendicular to each other",
+        "Equal in length"
+      ],
+      "answer": 2,
+      "explanation": "Zero dot product means zero alignment: the vectors are perpendicular. In an embedding space, orthogonal directions carry independent information — one dimension can encode \"is it an animal?\" without disturbing another encoding sentiment."
+    },
+    {
+      "id": "w01-q012",
+      "rev": 1,
+      "kind": "concept",
+      "topic": "normalization",
+      "prompt": "What does normalizing a vector do?",
+      "options": [
+        "Sets every component to zero",
+        "Reverses the vector's direction",
+        "Doubles the vector's magnitude",
+        "Scales it to length 1 while preserving its direction"
+      ],
+      "answer": 3,
+      "explanation": "Divide a vector by its own norm and you get a unit vector: same direction, length exactly 1. This is how you strip away \"how big\" and keep only \"which way\" — useful whenever you care about angle rather than magnitude."
+    },
+    {
+      "id": "w01-q013",
+      "rev": 1,
+      "kind": "compute",
+      "topic": "normalization",
+      "prompt": "What is the unit vector (normalized form) of `[3, 4]`?",
+      "options": ["[3, 4]", "[0.6, 0.8]", "[0.43, 0.57]", "[0.12, 0.16]"],
+      "answer": 1,
+      "explanation": "The norm is 5, so divide each component by 5: `[3/5, 4/5]` = `[0.6, 0.8]`. Check it: 0.6² + 0.8² = 0.36 + 0.64 = 1 ✓. If you got `[0.43, 0.57]` you divided by 3+4 = 7; `[0.12, 0.16]` means you divided by 25.",
+      "hint": "Find the norm first, then divide every component by it."
+    },
+    {
+      "id": "w01-q014",
+      "rev": 1,
+      "kind": "concept",
+      "topic": "cosine similarity",
+      "prompt": "True or false: cosine similarity and the dot product always give the same result.",
+      "options": ["True", "False"],
+      "answer": 1,
+      "explanation": "False. They agree only when both vectors are already unit length. Otherwise the dot product also carries magnitude information, while cosine divides it out and reports direction alone. Cosine is a special case of the dot product, not a synonym for it."
+    },
+    {
+      "id": "w01-q015",
+      "rev": 1,
+      "kind": "compute",
+      "topic": "dot product",
+      "prompt": "Compute `[1, 1]` · `[1, -1]`",
+      "options": ["2", "1", "0", "-2"],
+      "answer": 2,
+      "explanation": "1·1 + 1·(−1) = 1 − 1 = 0. Zero means orthogonal: one vector points northeast, the other southeast, and they're exactly 90° apart. Getting 2 means you ignored the minus sign.",
+      "hint": "The second components have opposite signs — that matters."
+    },
+    {
+      "id": "w01-q016",
+      "rev": 1,
+      "kind": "compute",
+      "topic": "cosine similarity",
+      "prompt": "What is the cosine similarity between `[1, 0]` and `[0, 1]`?",
+      "options": [
+        "1 — identical direction",
+        "0 — orthogonal",
+        "−1 — opposite direction",
+        "0.5 — partially similar"
+      ],
+      "answer": 1,
+      "explanation": "Dot product = 1·0 + 0·1 = 0. Both norms are 1, so cosine = 0 / (1 · 1) = 0. These are the two axis directions — perpendicular, sharing no information at all.",
+      "hint": "Compute the dot product on top first; if it's zero, the whole fraction is zero."
+    },
+    {
+      "id": "w01-q017",
+      "rev": 1,
+      "kind": "concept",
+      "topic": "attention",
+      "prompt": "In a transformer's attention mechanism, the relevance score between a query and a key is computed as:",
+      "options": [
+        "The Euclidean distance between them",
+        "The sum of their components",
+        "The dot product of the query and key vectors",
+        "The average of their magnitudes"
+      ],
+      "answer": 2,
+      "explanation": "score = q · k, later divided by √d_k for scale. This is why the dot product is worth mastering: \"how much should this token pay attention to that token\" is answered by a single dot product, billions of times per forward pass."
+    },
+    {
+      "id": "w01-q018",
+      "rev": 1,
+      "kind": "concept",
+      "topic": "attention",
+      "prompt": "You compute dot products between a query word and three candidates: A = 12.5, B = −3.2, C = 0.1. Which candidate is most relevant to the query?",
+      "options": [
+        "B — the largest absolute value indicates the strongest relationship",
+        "C — closest to zero means most neutral and therefore safest",
+        "You cannot tell without knowing the vector magnitudes",
+        "A — the highest positive score means the most alignment"
+      ],
+      "answer": 3,
+      "explanation": "Higher dot product = more alignment = more relevant, so A wins. B's negative score means it points somewhat opposite to the query; C ≈ 0 means it's essentially unrelated. Attention would send almost all of its weight to A."
+    }
+  ]
+}
