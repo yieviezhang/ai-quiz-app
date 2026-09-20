@@ -89,11 +89,11 @@ export const weekReviewPool = n => weekPool(n).filter(store.isInReview);
 export const reviewPool = () => store.reviewIds(liveIds);
 
 /**
- * Daily quiz — not uniform random, because uniform random on a 49-question
- * bank keeps re-serving things you already know:
+ * Daily quiz — not uniform random, because uniform random keeps re-serving
+ * things you already know:
  *   4 from the review pool (oldest first)
  *   4 unseen, starting from the week you're furthest along in
- *   2 anything, for spaced recall
+ *   2 from weeks you've reached, for spaced recall
  * Seeded by the date so reloading doesn't reshuffle today's set.
  */
 export function dailyPool(size = DAILY_SIZE) {
@@ -122,8 +122,19 @@ export function dailyPool(size = DAILY_SIZE) {
     if (unseenQuota <= 0) break;
   }
 
+  // The tail is spaced recall of ground you've covered, not a preview. Drawing
+  // it from the whole bank was fine at 3 authored weeks; at 12 it would mostly
+  // serve material from weeks you haven't studied, which teaches nothing and
+  // reads as noise. Falls back to the full bank only if the reached weeks can't
+  // fill the set.
+  const reachedIds = weeks
+    .filter(w => isAuthored(w) && w.week <= (cw ?? 1))
+    .flatMap(w => w.questions.map(q => q.id))
+    .filter(id => liveSet.has(id));
+  const tail = reachedIds.length >= size ? reachedIds : liveIds;
+
   const seed = hashString(`${store.today()}|${liveIds.length}`);
-  for (const id of seededShuffle(liveIds, seed)) if (take(id)) return picked;
+  for (const id of seededShuffle(tail, seed)) if (take(id)) return picked;
 
   return picked;
 }

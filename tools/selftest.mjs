@@ -139,6 +139,13 @@ check('daily pool is all live ids', daily.every(id => bank.getQuestion(id)));
 check('daily pool leads with the review pile', daily[0] === A);
 eq('daily pool is stable across calls', bank.dailyPool(), daily);
 
+/* Only week 1 has been touched, so nothing should come from weeks the learner
+ * has not reached. Before the bank grew past 3 weeks this held by accident; with
+ * 12 weeks listed, a uniform-random tail would break it. */
+const weekOf = id => Number(id.slice(1, 3));
+eq(`daily pool stays at or below week ${firstWeek}`,
+  daily.filter(id => weekOf(id) > firstWeek), []);
+
 /* ---------- stats ---------- */
 
 const s = store.stats(ids);

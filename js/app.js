@@ -13,7 +13,7 @@ import {
   toast, plural, formatDateLong,
 } from './ui.js';
 
-const APP_VERSION = '1.2.0';
+const APP_VERSION = '1.2.1';
 
 /* ══════════════════════ Today ══════════════════════ */
 
