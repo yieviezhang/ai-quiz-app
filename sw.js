@@ -7,7 +7,7 @@
  * JSON. The page shows an update pill instead and asks for the swap.
  */
 
-const VERSION = 'v1.1.1';
+const VERSION = 'v1.2.0';
 
 // Managed by tools/bank.py -- do not edit by hand. It lives in this file, not
 // only in version.json, because sw.js is fetched with updateViaCache:'none'

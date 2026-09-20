@@ -191,6 +191,42 @@ eq('retired ids stay out of stats', store.stats(ids).answered, 2);
 eq('compact removes exactly the retired ones', store.compact(bank.allSet()), 1);
 eq('compact leaves live records alone', store.stats(ids).answered, 2);
 
+/* ---------- paused drills ---------- */
+
+/* The bug these pin down: sessions used to share one slot, so opening any drill
+ * discarded your place in every other one. Nothing tested it, which is exactly
+ * why it shipped. */
+
+const mkSession = (mode, arg, idx, n = 10, extra = {}) => ({
+  mode, arg: String(arg), idx, ids: ids.slice(0, n).concat(Array(Math.max(0, n - ids.length)).fill(ids[0])),
+  results: [], date: store.today(), done: false, ...extra,
+});
+
+store.setSession(mkSession('week', 1, 4));
+store.setSession(mkSession('week', 2, 7));
+store.setSession(mkSession('daily', '', 3));
+
+eq('week 1 keeps its own place', store.getSession('week', 1).idx, 4);
+eq('week 2 keeps its own place', store.getSession('week', 2).idx, 7);
+eq('the daily set keeps its own place', store.getSession('daily', '').idx, 3);
+check('a drill never started has no session', store.getSession('week', 9) === null);
+eq('no-arg getSession returns the newest', store.getSession().mode, 'daily');
+
+check('a paused drill is resumable', store.resumableSession('week', 1)?.idx === 4);
+check('idx 0 is not worth resuming', store.resumableSession('week', 3) === null);
+store.setSession(mkSession('week', 4, 2, 10, { done: true }));
+check('a finished drill is not resumable', store.resumableSession('week', 4) === null);
+store.setSession(mkSession('week', 5, 10, 10));
+check('a drill past its last question is not resumable', store.resumableSession('week', 5) === null);
+
+store.clearSession('week', 1);
+check('clearing one drill removes it', store.getSession('week', 1) === null);
+eq('clearing one drill leaves the others', store.getSession('week', 2).idx, 7);
+
+// The numeric/string arg mismatch is a real hazard: the week page passes a
+// number while the router hands renderDrill a string from the URL.
+eq('numeric and string args address the same drill', store.getSession('week', '2').idx, 7);
+
 /* ---------- mathtext ---------- */
 
 eq('escapes html', mathtext('<script>'), '&lt;script&gt;');

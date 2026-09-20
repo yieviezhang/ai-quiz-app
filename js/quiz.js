@@ -37,6 +37,10 @@ function label(mode, arg) {
 
 /* ---------- lifecycle ---------- */
 
+const drillPath = (mode, arg) =>
+  `/drill/${mode}${String(arg) ? `/${encodeURIComponent(String(arg))}` : ''}`;
+
+/** Start fresh, discarding any saved place in this same drill. */
 export function start(mode, arg = '') {
   const ids = buildPool(mode, arg);
   if (!ids.length) {
@@ -46,8 +50,19 @@ export function start(mode, arg = '') {
   state = { mode, arg: String(arg), ids, idx: 0, results: [], date: store.today(), done: false };
   store.setSession(state);
   store.touchStreak();
-  const suffix = String(arg) ? `/${encodeURIComponent(String(arg))}` : '';
-  router.go(`/drill/${mode}${suffix}`);
+  router.go(drillPath(mode, arg));
+}
+
+/**
+ * Re-enter a paused drill at the question you stopped on.
+ *
+ * Deliberately does not touch the session — renderDrill loads it. Going through
+ * start() is what used to reset the index to 0, which made the whole resume
+ * path in renderDrill unreachable from the UI.
+ */
+export function resume(mode, arg = '') {
+  state = null; // force renderDrill to read the saved session, not stale memory
+  router.go(drillPath(mode, arg));
 }
 
 /** Route handler for #/drill/:mode(/:arg) */
@@ -55,7 +70,7 @@ export function renderDrill({ mode, arg = '' }) {
   // A finished session must not be resumed — it would bounce straight back
   // to the summary instead of starting a fresh set.
   if (!matches(state, mode, arg) || state.done) {
-    const saved = store.getSession();
+    const saved = store.getSession(mode, arg);
     state = matches(saved, mode, arg) && !saved.done ? saved : null;
   }
   if (!state) {
@@ -83,7 +98,13 @@ export function renderDrill({ mode, arg = '' }) {
 }
 
 function matches(s, mode, arg) {
-  return Boolean(s) && s.mode === mode && s.arg === String(arg) && Array.isArray(s.ids) && s.ids.length > 0;
+  if (!s || s.mode !== mode || s.arg !== String(arg)) return false;
+  if (!Array.isArray(s.ids) || !s.ids.length) return false;
+  // The daily set is defined for one day only, so yesterday's is not resumable.
+  // Week drills are: pausing on the subway and finishing two days later is the
+  // intended way to use this.
+  if (mode === 'daily' && s.date !== store.today()) return false;
+  return true;
 }
 
 /* ---------- question ---------- */
@@ -281,7 +302,8 @@ function missedRow(result) {
 }
 
 function leaveSummary(home) {
-  store.clearSession();
+  // Clear only the drill just finished; other paused drills keep their place.
+  if (state) store.clearSession(state.mode, state.arg);
   state = null;
   router.go(home, { replace: true });
 }

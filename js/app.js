@@ -13,7 +13,7 @@ import {
   toast, plural, formatDateLong,
 } from './ui.js';
 
-const APP_VERSION = '1.1.1';
+const APP_VERSION = '1.2.0';
 
 /* ══════════════════════ Today ══════════════════════ */
 
@@ -77,9 +77,9 @@ function statCell(value, label) {
 
 function renderDailyHero() {
   const done = store.getDaily();
-  const session = store.getSession();
-  const live = session && session.mode === 'daily' && session.date === store.today() && !session.done
-    ? session : null;
+  // Day-bound, unlike a week drill: yesterday's daily set is not resumable.
+  const session = store.resumableSession('daily');
+  const live = session && session.date === store.today() ? session : null;
 
   const hero = $('#daily-hero');
   const bar = $('#daily-bar');
@@ -150,6 +150,9 @@ function renderWeeks() {
 
 function authoredWeekRow(w) {
   const s = bank.weekStats(w.week);
+  // When a week is paused, that displaces the usual counts: it's the one thing
+  // you need to know before tapping, and it's why you'd tap.
+  const paused = store.resumableSession('week', w.week);
   return el('button', {
     class: 'list__row', type: 'button', 'data-tappable': 'true',
     onclick: () => router.go(`/week/${w.week}`),
@@ -157,7 +160,12 @@ function authoredWeekRow(w) {
     el('div', { class: 'list__thumb', text: String(w.week) }),
     el('div', { class: 'list__body' },
       el('div', { class: 'list__title', text: w.title }),
-      el('div', { class: 'list__sub', text: `${plural(s.total, 'question')} · ${s.mastered} mastered` })
+      el('div', {
+        class: 'list__sub',
+        text: paused
+          ? `Paused at question ${paused.idx + 1} of ${paused.ids.length}`
+          : `${plural(s.total, 'question')} · ${s.mastered} mastered`,
+      })
     ),
     el('div', { class: 'list__trail' }, ring(s.pct, 28, 3), chevron())
   );
@@ -187,6 +195,8 @@ function renderWeekDetail({ n }) {
   chrome.setHeader({ title: `Week ${w.week}`, left: { text: '‹ Weeks', onClick: () => router.back() } });
 
   const s = bank.weekStats(w.week);
+  const paused = store.resumableSession('week', w.week);
+  const pausedReview = store.resumableSession('weekreview', w.week);
 
   appendAll(clear($('#screen-week')),
     el('div', {},
@@ -204,18 +214,34 @@ function renderWeekDetail({ n }) {
     ),
 
     el('div', { class: 'stack', style: { marginTop: 'var(--sp-5)' } },
+      // Continue leads when there is somewhere to continue to; starting over is
+      // then demoted rather than removed, because re-drilling a finished week
+      // from the top is a legitimate thing to want.
+      paused
+        ? el('button', {
+            class: 'btn btn--primary', type: 'button',
+            text: `Continue · question ${paused.idx + 1} of ${paused.ids.length}`,
+            onclick: () => quiz.resume('week', w.week),
+          })
+        : null,
       el('button', {
-        class: 'btn btn--primary', type: 'button',
-        text: `Drill all ${s.total} questions`,
+        class: paused ? 'btn btn--secondary' : 'btn btn--primary', type: 'button',
+        text: paused ? 'Start over from question 1' : `Drill all ${s.total} questions`,
         onclick: () => quiz.start('week', w.week),
       }),
-      s.inReview
+      pausedReview
         ? el('button', {
             class: 'btn btn--secondary', type: 'button',
-            text: `Drill ${plural(s.inReview, 'question')} to fix`,
-            onclick: () => quiz.start('weekreview', w.week),
+            text: `Continue review · question ${pausedReview.idx + 1} of ${pausedReview.ids.length}`,
+            onclick: () => quiz.resume('weekreview', w.week),
           })
-        : null
+        : s.inReview
+          ? el('button', {
+              class: 'btn btn--secondary', type: 'button',
+              text: `Drill ${plural(s.inReview, 'question')} to fix`,
+              onclick: () => quiz.start('weekreview', w.week),
+            })
+          : null
     ),
 
     el('p', { class: 'section-label', style: { marginTop: 'var(--sp-5)' }, text: 'Questions' }),

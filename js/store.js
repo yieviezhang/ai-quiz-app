@@ -216,11 +216,78 @@ export function getDaily() {
 
 export const setDaily = d => setMeta({ daily: d });
 
-/* ---------- in-flight session ---------- */
+/* ---------- in-flight sessions ---------- */
 
-export const getSession = () => readJSON(K_SESSION, null);
-export const setSession = s => writeJSON(K_SESSION, s);
-export const clearSession = () => { try { localStorage.removeItem(K_SESSION); } catch {} };
+/* Keyed by mode + arg, so several drills can be paused at once. A single slot
+ * meant that starting any drill silently threw away your place in every other
+ * one — open week 5 after pausing week 4 and week 4 restarted from question 1.
+ */
+
+const MAX_SESSIONS = 24;
+
+const sessionKey = (mode, arg) => `${mode}:${arg == null ? '' : arg}`;
+
+function readSessions() {
+  const raw = readJSON(K_SESSION, null);
+  if (!raw || typeof raw !== 'object') return { at: {}, last: null };
+  // Migrate the old format, which was one bare session object.
+  if (typeof raw.mode === 'string' && Array.isArray(raw.ids)) {
+    const k = sessionKey(raw.mode, raw.arg);
+    return { at: { [k]: raw }, last: k };
+  }
+  return {
+    at: raw.at && typeof raw.at === 'object' ? raw.at : {},
+    last: typeof raw.last === 'string' ? raw.last : null,
+  };
+}
+
+/** One drill's saved place, or — called with no arguments — the newest one. */
+export function getSession(mode, arg) {
+  const { at, last } = readSessions();
+  const k = mode === undefined ? last : sessionKey(mode, arg);
+  return (k && at[k]) || null;
+}
+
+export function setSession(s) {
+  if (!s || typeof s.mode !== 'string') return false;
+  const { at } = readSessions();
+  const k = sessionKey(s.mode, s.arg);
+  at[k] = { ...s, savedAt: Date.now() };
+  // Bound the map: 'ids' redo-sets would otherwise leave one entry per distinct
+  // set of missed questions, forever.
+  const keys = Object.keys(at);
+  if (keys.length > MAX_SESSIONS) {
+    keys
+      .sort((a, b) => (at[a].savedAt || 0) - (at[b].savedAt || 0))
+      .slice(0, keys.length - MAX_SESSIONS)
+      .forEach(stale => delete at[stale]);
+  }
+  return writeJSON(K_SESSION, { at, last: k });
+}
+
+export function clearSession(mode, arg) {
+  const { at, last } = readSessions();
+  const k = mode === undefined ? last : sessionKey(mode, arg);
+  if (!k || !at[k]) return;
+  delete at[k];
+  writeJSON(K_SESSION, { at, last: last === k ? null : last });
+}
+
+const clearAllSessions = () => { try { localStorage.removeItem(K_SESSION); } catch {} };
+
+/**
+ * A saved drill worth offering a Continue button for: started, not finished,
+ * and not already past its last question.
+ *
+ * Note this deliberately does not check the date — pausing week 4 on the
+ * subway and finishing it two days later is the intended way to use the app.
+ * Only the daily set is day-bound, and its caller checks that itself.
+ */
+export function resumableSession(mode, arg) {
+  const s = getSession(mode, arg);
+  if (!s || s.done || !Array.isArray(s.ids)) return null;
+  return s.idx > 0 && s.idx < s.ids.length ? s : null;
+}
 
 /* ---------- export / import ---------- */
 
@@ -329,7 +396,7 @@ export function resetAll() {
   meta = { ...DEFAULT_META };
   saveProgress();
   saveMeta();
-  clearSession();
+  clearAllSessions();
 }
 
 export function compact(liveSet) {
